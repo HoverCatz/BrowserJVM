@@ -12,6 +12,13 @@
 //     reader.readAsArrayBuffer(this.files[0]);
 // }, false);
 
+/* asm-write.js */
+(async () => {
+    const buffer = await writeToClassFile(null);
+    console.log(currentIndex, buffer);
+})();
+
+
 /* asm.js */
 /*
 (async () =>
