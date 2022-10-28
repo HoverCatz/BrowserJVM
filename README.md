@@ -22,6 +22,8 @@ Non-supported features (might come later):
 - Threads
 - IO (File system)
 - Guis
+- Lambdas
+- Natives
 
 ## Why?
 Because I want to prove to myself what I can and can not do in programming.
