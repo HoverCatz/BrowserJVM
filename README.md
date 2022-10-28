@@ -2,7 +2,8 @@
 
 Please don't use this for production.  
 The project is very unstable. It can run simple java instructions, but there are still a lot of bugs and untested code.  
-The java compiler part also doesn't compile instructions yet, only class-data, field and function information. Still actively working on it.
+The java compiler part also doesn't compile instructions yet, only class-data, field and function information. Still actively working on it.  
+Currently only supports Java 7 (and below) - so no Java 8 (and above) functionality will work.
 
 ## What is this?
 
