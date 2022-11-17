@@ -5,128 +5,123 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Title</title>
-    <script src="js/common.js"></script>
+    <script src="js/utils.js"></script>
     <script src="js/highlighter.js"></script>
     <link rel="stylesheet" href="css/main.css" />
 </head>
 <body>
-    <div style="display:none;">
+<div style="display:none;">
         <pre>
-            <script src="js/asm-new.js"></script>
-            <!--<script src="js/jvm.js"></script>-->
-            <!--<script src="js/jvm-multi-instance.js"></script>-->
-            <!--<script src="js/jvm-new.js"></script>-->
+
         </pre>
-    </div>
-    <pre>
-<!--        <script src="js/javac.js"></script>-->
-        <script src="js/asm-write.js"></script>
+</div>
+<pre>
         <script src="js/main.js"></script>
     </pre>
-    <div class="editor">
-        <div class="line-numbers">
-            <span></span>
-        </div>
-        <pre><code contenteditable="true" spellcheck="false" id="code" class="code">Write code here!</code></pre>
+<div class="editor">
+    <div class="line-numbers">
+        <span></span>
     </div>
-    <script>
-        const pre = document.querySelector('pre')
-        const code = document.querySelector('code')
-        const lineNumbers = document.querySelector('.line-numbers')
+    <pre><code contenteditable="true" spellcheck="false" id="code" class="code">Write code here!</code></pre>
+</div>
+<script>
+    const pre = document.querySelector('pre')
+    const code = document.querySelector('code')
+    const lineNumbers = document.querySelector('.line-numbers')
 
-        // Thanks to: https://stackoverflow.com/a/13950376
-        let saveSelection, restoreSelection;
-        if (window.getSelection && document.createRange) {
-            saveSelection = function(containerEl) {
-                const range = window.getSelection().getRangeAt(0);
-                const preSelectionRange = range.cloneRange();
-                preSelectionRange.selectNodeContents(containerEl);
-                preSelectionRange.setEnd(range.startContainer, range.startOffset);
-                const start = preSelectionRange.toString().length;
-                return {
-                    start: start,
-                    end: start + range.toString().length
-                };
+    // Thanks to: https://stackoverflow.com/a/13950376
+    let saveSelection, restoreSelection;
+    if (window.getSelection && document.createRange) {
+        saveSelection = function(containerEl) {
+            const range = window.getSelection().getRangeAt(0);
+            const preSelectionRange = range.cloneRange();
+            preSelectionRange.selectNodeContents(containerEl);
+            preSelectionRange.setEnd(range.startContainer, range.startOffset);
+            const start = preSelectionRange.toString().length;
+            return {
+                start: start,
+                end: start + range.toString().length
             };
-            restoreSelection = function(containerEl, savedSel) {
-                let charIndex = 0, range = document.createRange();
-                range.setStart(containerEl, 0);
-                range.collapse(true);
-                let nodeStack = [containerEl], node, foundStart = false, stop = false;
-                while (!stop && (node = nodeStack.pop())) {
-                    if (node.nodeType === 3) {
-                        const nextCharIndex = charIndex + node.length;
-                        if (!foundStart && savedSel.start >= charIndex && savedSel.start <= nextCharIndex) {
-                            range.setStart(node, savedSel.start - charIndex);
-                            foundStart = true;
-                        }
-                        if (foundStart && savedSel.end >= charIndex && savedSel.end <= nextCharIndex) {
-                            range.setEnd(node, savedSel.end - charIndex);
-                            stop = true;
-                        }
-                        charIndex = nextCharIndex;
-                    } else {
-                        let i = node.childNodes.length;
-                        while (i--) {
-                            nodeStack.push(node.childNodes[i]);
-                        }
+        };
+        restoreSelection = function(containerEl, savedSel) {
+            let charIndex = 0, range = document.createRange();
+            range.setStart(containerEl, 0);
+            range.collapse(true);
+            let nodeStack = [containerEl], node, foundStart = false, stop = false;
+            while (!stop && (node = nodeStack.pop())) {
+                if (node.nodeType === 3) {
+                    const nextCharIndex = charIndex + node.length;
+                    if (!foundStart && savedSel.start >= charIndex && savedSel.start <= nextCharIndex) {
+                        range.setStart(node, savedSel.start - charIndex);
+                        foundStart = true;
+                    }
+                    if (foundStart && savedSel.end >= charIndex && savedSel.end <= nextCharIndex) {
+                        range.setEnd(node, savedSel.end - charIndex);
+                        stop = true;
+                    }
+                    charIndex = nextCharIndex;
+                } else {
+                    let i = node.childNodes.length;
+                    while (i--) {
+                        nodeStack.push(node.childNodes[i]);
                     }
                 }
-                const sel = window.getSelection();
-                sel.removeAllRanges();
-                sel.addRange(range);
             }
-        } else if (document.selection) {
-            saveSelection = function(containerEl) {
-                const selectedTextRange = document.selection.createRange();
-                const preSelectionTextRange = document.body.createTextRange();
-                preSelectionTextRange.moveToElementText(containerEl);
-                preSelectionTextRange.setEndPoint("EndToStart", selectedTextRange);
-                const start = preSelectionTextRange.text.length;
-                return {
-                    start: start,
-                    end: start + selectedTextRange.text.length
-                }
-            };
-            restoreSelection = function(containerEl, savedSel) {
-                const textRange = document.body.createTextRange();
-                textRange.moveToElementText(containerEl);
-                textRange.collapse(true);
-                textRange.moveEnd("character", savedSel.end);
-                textRange.moveStart("character", savedSel.start);
-                textRange.select();
-            };
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+        }
+    } else if (document.selection) {
+        saveSelection = function(containerEl) {
+            const selectedTextRange = document.selection.createRange();
+            const preSelectionTextRange = document.body.createTextRange();
+            preSelectionTextRange.moveToElementText(containerEl);
+            preSelectionTextRange.setEndPoint("EndToStart", selectedTextRange);
+            const start = preSelectionTextRange.text.length;
+            return {
+                start: start,
+                end: start + selectedTextRange.text.length
+            }
+        };
+        restoreSelection = function(containerEl, savedSel) {
+            const textRange = document.body.createTextRange();
+            textRange.moveToElementText(containerEl);
+            textRange.collapse(true);
+            textRange.moveEnd("character", savedSel.end);
+            textRange.moveStart("character", savedSel.start);
+            textRange.select();
+        };
+    }
+
+    document.addEventListener("keyup", function(event) {
+        if (!(event.target === pre || event.target === code)) return;
+
+        let value = code.innerText;
+        value = hljs.highlight(value, {language: 'java'}).value
+
+        const range = saveSelection(code);
+        code.innerHTML = value;
+        restoreSelection(code, range);
+
+        const numberOfLines = value.split('\n').length
+        lineNumbers.innerHTML = Array(numberOfLines)
+            .fill('<span></span>')
+            .join('')
+    });
+
+    document.addEventListener("keydown", function(event) {
+        if (event.key === 's' && event.ctrlKey) {
+            event.preventDefault()
+            return
         }
 
-        document.addEventListener("keyup", function(event) {
-            if (!(event.target === pre || event.target === code)) return;
+        if (event.target !== code) return;
+        if (event.key === 'Tab') {
+            document.execCommand('insertHTML', false, '&#009')
+            event.preventDefault()
+        }
+    });
 
-            let value = code.innerText;
-            value = hljs.highlight(value, {language: 'java'}).value
-
-            const range = saveSelection(code);
-            code.innerHTML = value;
-            restoreSelection(code, range);
-
-            const numberOfLines = value.split('\n').length
-            lineNumbers.innerHTML = Array(numberOfLines)
-                .fill('<span></span>')
-                .join('')
-        });
-
-        document.addEventListener("keydown", function(event) {
-            if (event.key === 's' && event.ctrlKey) {
-                event.preventDefault()
-                return
-            }
-
-            if (event.target !== code) return;
-            if (event.key === 'Tab') {
-                document.execCommand('insertHTML', false, '&#009')
-                event.preventDefault()
-            }
-        });
-
-    </script>
+</script>
 </body>
 </html>
