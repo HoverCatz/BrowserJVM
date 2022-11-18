@@ -15,8 +15,8 @@ class INode {
 
     constructor(opcode, input) {
         this.opcode = opcode;
-        this.input = input;
-        this.original = this.clone();
+        this.original = input;
+        this.reset();
     }
 
     get execute() {
@@ -27,7 +27,7 @@ class INode {
     }
 
     reset() {
-        this.input = this.original == null ? null : this.clone();
+        this.input = this.original == null ? null : deepCloneObject(this.original);
         this.currentInput = 0;
         this.retValue = null;
         this.doReturn = false;
@@ -36,21 +36,25 @@ class INode {
     returnObject(obj) {
         this.retValue = obj;
         this.doReturn = true;
-
     }
 
-    clone() {
-        // Clone originals to input
-        // then return the cloned list
-        const len = this.input.length;
-        const original = [...len];
-        for (let i = 0; i < len; i++) {
-            const obj = this.input[i];
-            original[i] = cloneObject(obj);
-        }
-        return original;
+    get next() {
+        return this.input[currentIndex++];
     }
 
-    get
+    get nextInt() {
+        const obj = this.input[currentIndex++];
+        return castObjectTo(obj, 'int');
+    }
+
+    get nextString() {
+        const obj = this.input[currentIndex++];
+        return castObjectTo(obj, 'string');
+    }
+
+    get nextBoolean() {
+        const obj = this.input[currentIndex++];
+        return castObjectTo(obj, 'boolean');
+    }
 
 }
