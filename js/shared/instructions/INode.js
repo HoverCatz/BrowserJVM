@@ -1,7 +1,7 @@
 // Interface for any Instruction
 class INode {
 
-    opcode;
+    opcode; // The instruction opcode
 
     hasExecuted;
 
