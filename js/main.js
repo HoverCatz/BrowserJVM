@@ -1,9 +1,27 @@
 // New attempt
 (async () => {
 
-    let obj = 0;
-    console.log(typeof obj);
-    obj = castObjectTo(obj, 'boolean');
-    console.log(typeof obj, obj);
+    let buffer = [];
+    let currentIndex = 0;
+
+    currentIndex += writeUInt(buffer, 0xCAFEBABE);
+    console.log(currentIndex);
+    currentIndex += writeUInt(buffer, 0xCAFEBABE);
+    console.log(currentIndex);
+    currentIndex += writeUInt(buffer, 0xCAFEBABE);
+    console.log(currentIndex);
+
+    currentIndex = 0;
+    let magic = readUInt(buffer, currentIndex);
+    console.log(magic.toString(16));
+    currentIndex += 4;
+
+    magic = readUInt(buffer, currentIndex);
+    console.log(magic.toString(16));
+    currentIndex += 4;
+
+    magic = readUInt(buffer, currentIndex);
+    console.log(magic.toString(16));
+    currentIndex += 4;
 
 })();

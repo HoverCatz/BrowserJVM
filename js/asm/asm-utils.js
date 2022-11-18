@@ -8,14 +8,14 @@ function toShort(num) {
 }
 
 function intToBytes(num, reverse = true) {
-    const arr = new Uint8Array([
+    const buffer = new Uint8Array([
         (num & 0xff000000) >> 24,
         (num & 0x00ff0000) >> 16,
         (num & 0x0000ff00) >> 8,
         (num & 0x000000ff)
     ]);
-    if (reverse) arr.reverse();
-    return [...arr];
+    if (reverse) buffer.reverse();
+    return [...buffer];
 }
 
 function shortToBytes(num, reverse = true) {
@@ -30,66 +30,63 @@ function shortToBytes(num, reverse = true) {
 // Read-functions
 
 /* Read a single byte */
-function readByte(arr, offset) {
-    return arr[offset] & 0xFF;
+function readByte(buffer, offset) {
+    return buffer[offset] & 0xFF;
 }
 
 /* Read a single unsigned short */
-function readUnsignedShort(arr, offset) {
-    return ((arr[offset] & 0xFF) << 8) | (arr[offset + 1] & 0xFF);
+function readUnsignedShort(buffer, offset) {
+    return ((buffer[offset] & 0xFF) << 8) | (buffer[offset + 1] & 0xFF);
 }
 
 /* Read a single short */
-function readShort(arr, offset) {
-    return toShort(((arr[offset] & 0xFF) << 8) | (arr[offset + 1] & 0xFF));
+function readShort(buffer, offset) {
+    return toShort(((buffer[offset] & 0xFF) << 8) | (buffer[offset + 1] & 0xFF));
 }
 
 /* Read 4 bytes, then create an unsigned int */
-function readUInt(arr, offset) {
+function readUInt(buffer, offset) {
     const bytes = [
-        arr[offset + 3] & 0xFF,
-        arr[offset + 1] & 0xFF,
-        arr[offset + 2] & 0xFF,
-        arr[offset] & 0xFF
+        (buffer[offset + 3] & 0xFF) << 24,
+        (buffer[offset + 2] & 0xFF) << 16,
+        (buffer[offset + 1] & 0xFF) << 8,
+        (buffer[offset    ] & 0xFF)
     ];
-    let r = 0;
-    for (let i = 3; i >= 0; i--)
-        r |= bytes[i] << (i * 8);
-    return r >>> 0;
+    return (bytes[3] | bytes[2] | bytes[1] | bytes[0]) >>> 0;
 }
 
-function readClass(constantUtf8Values, offset, cpInfoOffsets, arr) {
-    return readStringish(constantUtf8Values, offset, cpInfoOffsets, arr);
+function readClass(constantUtf8Values, offset, cpInfoOffsets, buffer) {
+    return readStringish(constantUtf8Values, offset, cpInfoOffsets, buffer);
 }
-function readStringish(constantUtf8Values, offset, cpInfoOffsets, arr) {
-    return readUTF8(constantUtf8Values, cpInfoOffsets[readUnsignedShort(arr, offset)], cpInfoOffsets, arr);
+function readStringish(constantUtf8Values, offset, cpInfoOffsets, buffer) {
+    return readUTF8(constantUtf8Values, cpInfoOffsets[readUnsignedShort(buffer, offset)], cpInfoOffsets, buffer);
 }
-function readUTF8(constantUtf8Values, offset, cpInfoOffsets, arr) {
-    const cpPoolEntryIndex = readUnsignedShort(arr, offset);
+function readUTF8(constantUtf8Values, offset, cpInfoOffsets, buffer) {
+    const cpPoolEntryIndex = readUnsignedShort(buffer, offset);
     if (offset === 0 || cpPoolEntryIndex === 0)
         return null;
-    return readUtf(constantUtf8Values, cpPoolEntryIndex, cpInfoOffsets, arr);
+    return readUtf(constantUtf8Values, cpPoolEntryIndex, cpInfoOffsets, buffer);
 }
-function readUtf(constantUtf8Values, cpPoolEntryIndex, cpInfoOffsets, arr) {
+function readUtf(constantUtf8Values, cpPoolEntryIndex, cpInfoOffsets, buffer) {
     const value = constantUtf8Values[cpPoolEntryIndex];
     if (value !== null)
         return value;
     const cpInfoOffset = cpInfoOffsets[cpPoolEntryIndex];
-    return constantUtf8Values[cpPoolEntryIndex] = readUtf2(cpInfoOffset + 2, readUnsignedShort(arr, cpInfoOffset), arr);
+    return constantUtf8Values[cpPoolEntryIndex] = readUtf2(cpInfoOffset + 2, readUnsignedShort(buffer, cpInfoOffset), buffer);
 }
-function readUtf2(utfOffset, utfLength, arr) {
+function readUtf2(utfOffset, utfLength, buffer) {
     let currentOffset = utfOffset;
     let endOffset = currentOffset + utfLength;
     let result = '';
     for (; currentOffset < endOffset; ) {
-        const currentByte = readByte(arr, currentOffset++);
+        const currentByte = readByte(buffer, currentOffset++);
         if ((currentByte & 0x80) === 0)
             result += String.fromCharCode(currentByte & 0x7F);
         else
         if ((currentByte & 0xE0) === 0xC0)
-            result += String.fromCharCode(((currentByte & 0x1F) << 6) + (readByte(arr, currentOffset++) & 0x3F));
+            result += String.fromCharCode(((currentByte & 0x1F) << 6) + (readByte(buffer, currentOffset++) & 0x3F));
         else
-            result += String.fromCharCode(((currentByte & 0xF) << 12) + ((readByte(arr, currentOffset++) & 0x3F) << 6) + (readByte(arr, currentOffset++) & 0x3F));
+            result += String.fromCharCode(((currentByte & 0xF) << 12) + ((readByte(buffer, currentOffset++) & 0x3F) << 6) + (readByte(buffer, currentOffset++) & 0x3F));
     }
     return result;
 }
@@ -106,13 +103,13 @@ function getMethodDescriptor(desc) {
     return 'L' + desc + ';';
 }
 
-function readConst(constantUtf8Values, cpInfoOffsets, constantPoolEntryIndex, arr) {
+function readConst(constantUtf8Values, cpInfoOffsets, constantPoolEntryIndex, buffer) {
     let cpInfoOffset = cpInfoOffsets[constantPoolEntryIndex];
-    switch (arr[cpInfoOffset - 1]) {
+    switch (buffer[cpInfoOffset - 1]) {
         case 3:
         case 4:
         case 5:
-        case 6: return readUInt(arr, cpInfoOffset);
+        case 6: return readUInt(buffer, cpInfoOffset);
         case 7: return getTypeDescriptor(readUTF8(constantUtf8Values, cpInfoOffset, cpInfoOffsets));
         case 8: return readUTF8(constantUtf8Values, cpInfoOffset, cpInfoOffsets);
 
@@ -128,15 +125,15 @@ function readConst(constantUtf8Values, cpInfoOffsets, constantPoolEntryIndex, ar
 
 // Write-functions
 
-function write(bytes) {
-    console.log('write', bytes)
+function write(buffer, bytes) {
+    console.log('write', bytes);
     for (const i in bytes) buffer.push(bytes[i]);
-    currentIndex += bytes.length;
+    return bytes.length;
 }
 
-function writeUInt(i) {
-    write(intToBytes(i))
+function writeUInt(buffer, i) {
+    return write(buffer, intToBytes(i))
 }
-function writeUnsignedShort(s) {
-    write(shortToBytes(s))
+function writeUnsignedShort(buffer, s) {
+    return write(buffer, shortToBytes(s))
 }
