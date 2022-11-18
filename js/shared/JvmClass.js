@@ -41,14 +41,19 @@ class JvmClass {
     }
 
     findFunction(name, args, isStatic) {
-        if (name in this.functions.names) {
-            if (args in this.functions.args) {
-                const foundName = this.functions.names[name];
-                const foundArgs = this.functions.args[name];
-                if (foundName !== foundArgs) {
-                    throw new Error('');
-                }
+        if (name in this.functions.names && args in this.functions.args) {
+            const foundName = this.functions.names[name];
+            const foundArgs = this.functions.args[name];
+            if (foundName !== foundArgs) {
+                throw new Error('Found name and found args didn\'t match');
             }
+            if (isStatic && !foundName.isStatic) {
+                throw new Error('Trying to access a non-static function as static.');
+            }
+            return foundName;
+        }
+        if (this.superClass) {
+            return this.superClass.findFunction(name, args, isStatic);
         }
         return false;
     }
