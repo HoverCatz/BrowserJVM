@@ -1,4 +1,9 @@
 // New attempt
 (async () => {
-    console.log('hello world');
+
+    let obj = 0;
+    console.log(typeof obj);
+    obj = castObjectTo(obj, 'boolean');
+    console.log(typeof obj, obj);
+
 })();
