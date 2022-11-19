@@ -1,13 +1,13 @@
 class JvmField {
 
-    ownerClass;
+    ownerClass; // JvmClass
 
-    accessFlags;
-    fieldName;
-    fieldDesc;
-    isStaticInstance;
+    accessFlags; // int
+    fieldName; // String
+    fieldDesc; // String
+    isStaticInstance; // boolean
 
-    value;
+    value; // any
 
     isLoaded = false;
 
@@ -92,8 +92,9 @@ class JvmField {
         if (isStaticField) {
             console.log('creating a new static field:', staticKey);
             JvmField.staticInstances[staticKey] = field;
-        } else
+        } else {
             console.log('creating a new field instance');
+        }
         return field;
     }
 
