@@ -19,7 +19,7 @@ class INode {
         this.reset();
     }
 
-    get execute() {
+    execute() {
         if (this.hasExecuted)
             this.reset();
         else
@@ -38,22 +38,22 @@ class INode {
         this.doReturn = true;
     }
 
-    get next() {
-        return this.input[currentIndex++];
+    next() {
+        return this.input[this.currentInput++];
     }
 
-    get nextInt() {
-        const obj = this.input[currentIndex++];
+    nextInt() {
+        const obj = this.input[this.currentInput++];
         return castObjectTo(obj, 'int');
     }
 
-    get nextString() {
-        const obj = this.input[currentIndex++];
+    nextString() {
+        const obj = this.input[this.currentInput++];
         return castObjectTo(obj, 'string');
     }
 
-    get nextBoolean() {
-        const obj = this.input[currentIndex++];
+    nextBoolean() {
+        const obj = this.input[this.currentInput++];
         return castObjectTo(obj, 'boolean');
     }
 
