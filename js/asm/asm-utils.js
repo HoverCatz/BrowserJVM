@@ -137,3 +137,54 @@ function writeUInt(buffer, i) {
 function writeUnsignedShort(buffer, s) {
     return write(buffer, shortToBytes(s))
 }
+
+/* ########## */
+
+// Util functions
+
+function addToList(list, name_desc, value) {
+    if (name_desc in list) {
+        throw new Error('List already contains the key `' + name_desc + '`.');
+    }
+    list[name_desc] = value;
+}
+
+/* ########## */
+
+// Access functions
+
+function isPublic(accessFlags) {
+    return (Opcodes.ACC_PUBLIC & accessFlags) != 0x0;
+}
+
+function isPrivate(accessFlags) {
+    return (Opcodes.ACC_PRIVATE & accessFlags) != 0x0;
+}
+
+function isProtected(accessFlags) {
+    return (Opcodes.ACC_PROTECTED & accessFlags) != 0x0;
+}
+
+function isStatic(accessFlags) {
+    return (Opcodes.ACC_STATIC & accessFlags) != 0x0;
+}
+
+function isFinal(accessFlags) {
+    return (Opcodes.ACC_FINAL & accessFlags) != 0x0;
+}
+
+function isNative(accessFlags) {
+    return (Opcodes.ACC_NATIVE & accessFlags) != 0x0;
+}
+
+function isInterface(accessFlags) {
+    return (Opcodes.ACC_INTERFACE & accessFlags) != 0x0;
+}
+
+function isAbstract(accessFlags) {
+    return (Opcodes.ACC_ABSTRACT & accessFlags) != 0x0;
+}
+
+function isAccess(accessFlags, check) {
+    return (check & accessFlags) != 0x0;
+}
