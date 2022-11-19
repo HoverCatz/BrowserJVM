@@ -1,7 +1,11 @@
 class InsnNode extends INode {
 
-    constructor() {
-        super();
+    constructor(opcode, input) {
+        super(opcode, input);
+    }
+
+    execute(stack) {
+        super.execute();
     }
 
 }
