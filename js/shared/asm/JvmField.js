@@ -32,6 +32,9 @@ class JvmField {
         if (isFinalField && isLoaded) {
             throw new Error('Final field `' + this.getPath() + '` can\'t be reassigned.');
         }
+        if (!compareTypes(value, this.fieldDesc)) {
+            throw new Error('Field `' + this.getPath() + '` is of wrong type. ValueType=`' + getTypeString(value) + '`, FieldDesc=`' + this.fieldDesc + '`');
+        }
         this.value = value;
         if (isFinalField && !isLoaded)
             this.isLoaded = true;
@@ -39,7 +42,7 @@ class JvmField {
 
     /**
      * Returns the value from this Field.
-     * @returns {any|object}
+     * @returns {any|null}
      * @throws {Error}
      */
     getValue() {
@@ -77,17 +80,18 @@ class JvmField {
             throw new Error('Field `' + this.getPath() + '` is static.');
         }
         const fieldName = this.fieldName;
+        const fieldDesc = this.fieldDesc;
         const owner = this.ownerClass;
         if (isStaticField) {
             const ownerPkg = (owner.package.length > 0) ? (owner.package + '/') : '';
             const ownerClassName = owner.className;
-            staticKey = ownerPkg + ownerClassName + ' ' + fieldName + ' ' + this.fieldDesc;
+            staticKey = ownerPkg + ownerClassName + ' ' + fieldName + ' ' + fieldDesc;
             if (staticKey in JvmField.staticInstances) {
                 console.log('returning an existing static field');
                 return JvmField.staticInstances[staticKey];
             }
         }
-        const field = new JvmField(owner, accessFlags, fieldName);
+        const field = new JvmField(owner, accessFlags, fieldName, fieldDesc);
         field.setValue(this.value);
         if (isStaticField) {
             console.log('creating a new static field:', staticKey);

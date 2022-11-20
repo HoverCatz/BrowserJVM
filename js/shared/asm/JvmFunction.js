@@ -8,6 +8,7 @@ class JvmFunction {
     isStaticInstance; // boolean
 
     instructions; // INode[]
+    tryCatches; // JvmTryCatch[]
 
     isLoaded = false;
 
@@ -21,20 +22,30 @@ class JvmFunction {
         this.isStaticInstance = isStatic(accessFlags);
     }
 
-    load(instructions = {}) {
+    /**
+     * Load the instruction-set and the try-catches
+     * @param instructions
+     * @param tryCatches
+     */
+    load(instructions = {}, tryCatches = {}) {
         if (this.isLoaded) {
             throw new Error('Function already loaded.');
         }
         this.instructions = instructions;
+        this.tryCatches = tryCatches;
         this.isLoaded = true;
     }
 
-    execute() {
+    /**
+     * Execute this function
+     * @returns {null|*}
+     */
+    execute(locals = [...Array(0)], stack = []) {
         if (!this.isLoaded) {
             throw new Error('Function `' + this.getPath() + '` isn\'t loaded.');
         }
-        const stack = [];
         let pointer = 0;
+        let lineNumber = 0;
         const len = this.instructions.length;
         // Loop through all instructions
         while (pointer >= 0 && pointer < len) {
@@ -43,7 +54,7 @@ class JvmFunction {
                 // Retrieve current instruction
                 const insn = this.instructions[pc];
                 // Actually execute instruction
-                insn.execute(stack);
+                insn.execute(locals, stack);
                 // Check return value
                 if (insn.doReturn) {
                     return insn.retValue;

@@ -8,6 +8,9 @@ const STATIC_CLASS_LIST = {};
  */
 function addStaticClass(pkg, className, clz) {
     const key = (pkg.length > 0 ? (pkg + '/') : '') + className;
+    if (key in STATIC_CLASS_LIST) {
+        throw new Error('Class `' + clz.getPath() + '` already in list.');
+    }
     STATIC_CLASS_LIST[key] = clz;
 }
 
@@ -21,19 +24,27 @@ function findStaticClass(pkg_className) {
 }
 
 /**
+ * Returns a static field
  * @param pkg_className
- * @param field_name_desc
- * @param isStatic
+ * @param name
+ * @param desc
  * @returns {JvmField|false}
  */
-function findField(pkg_className, field_name_desc, isStatic) {
+function findStaticField(pkg_className, name, desc) {
     const clz = findStaticClass(pkg_className);
     if (!clz) return false;
-    return clz.findField(field_name_desc, isStatic);
+    return clz.findField(name, desc, true);
 }
 
-function findFunction(pkg_className, function_name_desc, isStatic) {
+/**
+ * Returns a static function
+ * @param pkg_className
+ * @param name
+ * @param desc
+ * @returns {JvmFunction|false}
+ */
+function findStaticFunction(pkg_className, name, desc) {
     const clz = findStaticClass(pkg_className);
     if (!clz) return false;
-    return clz.findFunction(function_name_desc, isStatic);
+    return clz.findFunction(name, desc, true);
 }
