@@ -142,12 +142,7 @@ function writeUnsignedShort(buffer, s) {
 
 // Util functions
 
-function addToList(list, name_desc, value) {
-    if (name_desc in list) {
-        throw new Error('List already contains the key `' + name_desc + '`.');
-    }
-    list[name_desc] = value;
-}
+
 
 /* ########## */
 
