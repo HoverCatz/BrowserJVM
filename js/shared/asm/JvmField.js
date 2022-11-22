@@ -50,7 +50,10 @@ class JvmField {
         if (isFinalField && !this.isLoaded) {
             throw new Error('Field `' + this.getPath() + '` isn\'t loaded.');
         }
-        return this.value;
+        const value = this.value;
+        if (value instanceof JvmNumber)
+            return value.get();
+        return value;
     }
 
     /**
