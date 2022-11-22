@@ -57,39 +57,164 @@ function compareObjects(in1, in2, strict = false) {
 }
 
 /* Case object from A to B */
+/**
+ * Cast object {obj} to type {toType}
+ * @param obj {any}
+ * @param toType {string}
+ * @returns {string|number|BigInt|boolean|JvmNumber|false}
+ */
 function castObjectTo(obj, toType) {
-    if (obj == null) return obj;
-    const type = typeof obj;
-    switch (toType) {
-        case 'int':
+    if (obj == null)
+        return obj;
+    const type = (typeof obj).toLowerCase();
+    if (type === 'undefined')
+        return obj;
+    toType = toType.toLowerCase();
+    if (obj instanceof JvmNumber) {
+        switch (toType) {
+            case 'string':
+                return obj.toString();
+            case 'i':
+            case 'int':
+            case 'integer':
+            case 'number': {
+                const val = obj.get();
+                if (typeof val === 'bigint')
+                    return Number(val);
+                return val;
+            } break;
+            case 'bigint': {
+                const val = obj.get();
+                if (typeof val === 'number')
+                    return BigInt(val);
+                return val;
+            } break;
+            case 'boolean': {
+                let val = obj.get();
+                if (typeof val === 'bigint')
+                    val = Number(val);
+                return val !== 0;
+            } break;
+            case 'JvmByte'.toLowerCase(): return JvmByte.of(obj.get());
+            case 'JvmChar'.toLowerCase(): return JvmChar.of(obj.get());
+            case 'JvmShort'.toLowerCase(): return JvmShort.of(obj.get());
+            case 'JvmInteger'.toLowerCase(): return JvmInteger.of(obj.get());
+            case 'JvmFloat'.toLowerCase(): return JvmFloat.of(obj.get());
+            case 'JvmLong'.toLowerCase(): return JvmLong.of(obj.get());
+            case 'JvmDouble'.toLowerCase(): return JvmDouble.of(obj.get());
+        }
+    }
+    switch (type) {
         case 'number': {
-            if (type === 'string')
-                return parseInt(obj);
-            if (type === 'number')
-                return obj;
-            if (type === 'boolean')
-                return (obj === true) ? 1 : 0;
-            return parseInt(obj.toString());
+            switch (toType) {
+                case 'string':
+                    return obj.toString();
+                case 'i':
+                case 'int':
+                case 'integer':
+                case 'number':
+                    return obj;
+                case 'bigint':
+                    return BigInt(obj);
+                case 'boolean':
+                    return obj !== 0;
+                case 'JvmByte'.toLowerCase(): return JvmByte.of(obj);
+                case 'JvmChar'.toLowerCase(): return JvmChar.of(obj);
+                case 'JvmShort'.toLowerCase(): return JvmShort.of(obj);
+                case 'JvmInteger'.toLowerCase(): return JvmInteger.of(obj);
+                case 'JvmFloat'.toLowerCase(): return JvmFloat.of(obj);
+                case 'JvmLong'.toLowerCase(): return JvmLong.of(obj);
+                case 'JvmDouble'.toLowerCase(): return JvmDouble.of(obj);
+            }
+        } break;
+        case 'bigint': {
+            switch (toType) {
+                case 'string':
+                    return obj.toString();
+                case 'i':
+                case 'int':
+                case 'integer':
+                case 'number':
+                    return Number(obj);
+                case 'bigint':
+                    return obj;
+                case 'JvmByte'.toLowerCase(): return JvmByte.of(obj);
+                case 'JvmChar'.toLowerCase(): return JvmChar.of(obj);
+                case 'JvmShort'.toLowerCase(): return JvmShort.of(obj);
+                case 'JvmInteger'.toLowerCase(): return JvmInteger.of(obj);
+                case 'JvmFloat'.toLowerCase(): return JvmFloat.of(obj);
+                case 'JvmLong'.toLowerCase(): return JvmLong.of(obj);
+                case 'JvmDouble'.toLowerCase(): return JvmDouble.of(obj);
+            }
         } break;
         case 'string': {
-            if (type === 'string')
-                return obj;
-            if (type === 'boolean')
-                return (obj === true) ? 'true' : 'false';
-            return obj.toString();
+            const lower = obj.toLowerCase();
+            switch (toType) {
+                case 'string':
+                    return obj;
+                case 'i':
+                case 'int':
+                case 'integer':
+                case 'number': {
+                    const val = parseInt(obj);
+                    if (isNaN(val))
+                        return (lower === 'true') ? 1 : (lower === 'false') ? 0 : val;
+                    return val;
+                } break;
+                case 'bigint':
+                    if (lower === 'true') return 1n; else
+                    if (lower === 'false') return 0n; else
+                    try {
+                        return BigInt(obj);
+                    } catch (e) {
+                        return NaN;
+                    }
+                case 'boolean':
+                    return lower === 'true';
+                case 'JvmByte'.toLowerCase(): return JvmByte.of(Number(obj));
+                case 'JvmChar'.toLowerCase(): return JvmChar.of(Number(obj));
+                case 'JvmShort'.toLowerCase(): return JvmShort.of(Number(obj));
+                case 'JvmInteger'.toLowerCase(): return JvmInteger.of(Number(obj));
+                case 'JvmFloat'.toLowerCase(): return JvmFloat.of(Number(obj));
+                case 'JvmLong'.toLowerCase(): return JvmLong.of(Number(obj));
+                case 'JvmDouble'.toLowerCase(): return JvmDouble.of(Number(obj));
+            }
         } break;
         case 'boolean': {
-            if (type === 'string')
-                return obj.toString().toLowerCase() === 'true';
-            if (type === 'number')
-                return obj.toString() !== '0';
-            if (type === 'boolean')
-                return obj;
-            // Warning
+            const isTrue = obj === true;
+            switch (toType) {
+                case 'string':
+                    return isTrue ? 'true' : 'false';
+                case 'i':
+                case 'int':
+                case 'integer':
+                case 'number':
+                    return isTrue ? 1 : 0;
+                case 'bigint':
+                    return isTrue ? 1n : 0n;
+                case 'JvmByte'.toLowerCase(): return JvmByte.of(isTrue ? 1 : 0);
+                case 'JvmChar'.toLowerCase(): return JvmChar.of(isTrue ? 1 : 0);
+                case 'JvmShort'.toLowerCase(): return JvmShort.of(isTrue ? 1 : 0);
+                case 'JvmInteger'.toLowerCase(): return JvmInteger.of(isTrue ? 1 : 0);
+                case 'JvmFloat'.toLowerCase(): return JvmFloat.of(isTrue ? 1 : 0);
+                case 'JvmLong'.toLowerCase(): return JvmLong.of(isTrue ? 1 : 0);
+                case 'JvmDouble'.toLowerCase(): return JvmDouble.of(isTrue ? 1 : 0);
+            }
         } break;
     }
     console.warn('Not sure what to cast here? Type=' + type + ', ToType=' + toType);
     return obj;
+}
+
+/* Get object type string */
+function getTypeString(obj) {
+    if (obj === null) return 'null';
+    const type = typeof obj;
+    if (type === 'undefined') return 'undefined'; else
+    if (type === 'function') return 'function';
+    if (obj instanceof JvmNumber)
+        return obj.getAsmType();
+    return obj.constructor.name;
 }
 
 /* Add {value} to {list} by key {name_desc} */
@@ -111,6 +236,9 @@ function addToList(list, name_desc, value) {
 function compareTypes(value, asmType) {
     if (value == null) {
         switch (asmType) {
+            case 'B': // byte
+            case 'C': // char
+            case 'S': // short
             case 'I': // int
             case 'F': // float
             case 'D': // double
@@ -124,43 +252,92 @@ function compareTypes(value, asmType) {
     }
     const type = typeof value;
     if (type === 'string' && (asmType === 'java/lang/String' || asmType === 'java/lang/CharSequence')) return true;
-    if (type === 'number' || type === 'int' || type === 'float' || type === 'double' || type === 'long' || type === 'Integer') {
-        if (isFloat(value)) { // Decimal value
-            if (asmType === 'F' || asmType === 'D' || asmType === 'java/lang/Float' || asmType === 'java/lang/Double') {
-                return true;
-            }
-        } else {
-            if (asmType === 'I' || asmType === 'J' || asmType === 'java/lang/Integer' || asmType === 'java/lang/Long') {
-                return true;
+    if ((type === 'bool' || type === 'boolean') && (asmType === 'Z' || asmType === 'java/lang/Boolean')) return true;
+    return getTypeString(value) === asmType;
+}
+
+/**
+ *
+ * @param asmType
+ * @returns {JvmNumberType|false}
+ */
+function getNumberType(asmType) {
+    switch (asmType.toLowerCase()) {
+        // 8-bit
+        case 'b': // B
+        case 'byte': // Byte
+        case 'java/lang/byte': // java/lang/Byte
+        case 'ljava/lang/byte;': // Ljava/lang/Byte;
+            return JvmNumberType.Byte; // JvmNumber type `byte`
+
+        // 16-bit
+        case 'c': // C
+        case 'char': // Character
+        case 'java/lang/character': // java/lang/Character
+        case 'ljava/lang/character;': // Ljava/lang/Character;
+            return JvmNumberType.Char; // JvmNumber type `char`
+        case 's': // S
+        case 'short': // Short
+        case 'java/lang/short': // java/lang/Short
+        case 'ljava/lang/short;': // Ljava/lang/Short;
+            return JvmNumberType.Short; // JvmNumber type `short`
+
+        // 32-bit
+        case 'i': // I
+        case 'int':
+        case 'integer': // Integer
+        case 'java/lang/integer': // java/lang/Integer
+        case 'ljava/lang/integer;': // Ljava/lang/Integer;
+            return JvmNumberType.Int; // JvmNumber type `int`
+        case 'f': // F
+        case 'float': // float/Float
+        case 'java/lang/float': // java/lang/Float
+        case 'ljava/lang/float;': // Ljava/lang/Float;
+            return JvmNumberType.Float; // JvmNumber type `float`
+
+        // 64-bit
+        case 'l': // L
+        case 'long': // long/Long
+        case 'java/lang/long': // java/lang/Long
+        case 'ljava/lang/long;': // Ljava/lang/Long;
+            return JvmNumberType.Long; // JvmNumber type `long`
+        case 'd': // D
+        case 'double': // double/Double
+        case 'java/lang/double': // java/lang/Double
+        case 'ljava/lang/double;': // Ljava/lang/Double;
+            return JvmNumberType.Double; // JvmNumber type `double`
+    }
+    return false;
+}
+
+/**
+ * Create a new JvmNumber for the specific type
+ * @param value {number|BigInt}
+ * @param type {JvmNumberType}
+ * @returns {JvmByte|JvmChar|JvmShort|JvmInteger|JvmFloat|JvmLong|JvmDouble|false}
+ */
+function newJvmNumber(value, type = null) {
+    switch (type) {
+        // 8-bit
+        case JvmNumberType.Byte: return new JvmByte(value);
+        // 16-bit
+        case JvmNumberType.Char: return new JvmChar(value);
+        case JvmNumberType.Short: return new JvmShort(value);
+        // 32-bit
+        case JvmNumberType.Int: return new JvmInteger(value);
+        case JvmNumberType.Float: return new JvmFloat(value);
+        // 64-bit
+        case JvmNumberType.Long: return new JvmLong(value);
+        case JvmNumberType.Double: return new JvmDouble(value);
+        default: {
+            if (value instanceof JvmNumber) {
+                const type = value.getAsmType();
+                const numberType = getNumberType(type);
+                if (numberType) {
+                    return newJvmNumber(value, numberType);
+                }
             }
         }
     }
-    return (type === 'bool' || type === 'boolean') && (asmType === 'Z' || asmType === 'java/lang/Boolean');
-}
-
-/**
- * Checks if {num} is a Float
- * @param num
- * @returns {boolean}
- */
-function isFloat(num) {
-    return num === +num && num !== (num | 0 );
-}
-
-/**
- * Returns the type-name of a value
- * @param value
- * @returns {string|"undefined"|"object"|"boolean"|"function"|"symbol"|"bigint"}
- */
-function getTypeString(value) {
-    if (value == null) {
-        return 'null';
-    }
-    const type = typeof value;
-    if (type === 'string') return type; else
-    if (type === 'number') {
-        if (isFloat(value)) return 'float';
-        return type
-    } else
-    return type;
+    return false;
 }
