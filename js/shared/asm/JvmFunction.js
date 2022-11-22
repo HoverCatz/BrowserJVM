@@ -96,17 +96,18 @@ class JvmFunction {
             throw new Error('Function `' + this.getPath() + '` is static.');
         }
         const functionName = this.functionName;
+        const functionDesc = this.functionDesc;
         const owner = this.ownerClass;
         if (isStaticFunction) {
             const ownerPkg = (owner.package.length > 0) ? (owner.package + '/') : '';
             const ownerClassName = owner.className;
-            staticKey = ownerPkg + ownerClassName + ' ' + functionName + ' ' + this.functionDesc;
+            staticKey = ownerPkg + ownerClassName + ' ' + functionName + ' ' + functionDesc;
             if (staticKey in JvmFunction.staticInstances) {
                 console.log('returning an existing static function');
                 return JvmFunction.staticInstances[staticKey];
             }
         }
-        const func = new JvmFunction(owner, accessFlags, functionName);
+        const func = new JvmFunction(owner, accessFlags, functionName, functionDesc);
         func.load(this.instructions);
         if (isStaticFunction) {
             console.log('creating a new static function:', staticKey);

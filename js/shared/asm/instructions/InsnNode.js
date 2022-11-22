@@ -6,7 +6,7 @@ class InsnNode extends INode {
 
     execute(locals, stack) {
         super.execute();
-        console.log('executing InsnNode. Opcode=' + this.opcode + '. Input:`', this.input, '`. Locals:`', locals, '`. Stack:`', stack, '`');
+        console.log('executing InsnNode. Opcode=' + OpcodesReverse[this.opcode] + '. Input:`', this.input, '`. Locals:`', locals, '`. Stack:`', stack, '`');
         switch (this.opcode) {
 
             case Opcodes.NOP:
