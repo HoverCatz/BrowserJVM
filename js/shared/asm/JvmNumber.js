@@ -58,7 +58,7 @@ class JvmNumber {
     }
 
     /**
-     * Get the number type JvmNumberType(Int, Float, Long, Double)
+     * Get the number type JvmNumberType(Byte, Char, Short, Int, Float, Long, Double)
      * @returns {JvmNumberType}
      */
     get type() {}
