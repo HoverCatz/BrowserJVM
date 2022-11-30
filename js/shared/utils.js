@@ -214,6 +214,8 @@ function getTypeString(obj) {
     if (type === 'function') return 'function';
     if (obj instanceof JvmNumber)
         return obj.getAsmType();
+    if (obj instanceof JvmClass)
+        return obj.getPath(true);
     return obj.constructor.name;
 }
 
@@ -232,6 +234,8 @@ function addToList(list, name_desc, value) {
  *   a. asmType: java/lang/String
  *   b. value: null
  *   b. asmType: java/lang/String
+ *   c. value: 123 (JvmInteger)
+ *   c. asmType: I
  */
 function compareTypes(value, asmType) {
     if (value == null) {
@@ -253,7 +257,42 @@ function compareTypes(value, asmType) {
     const type = typeof value;
     if (type === 'string' && (asmType === 'java/lang/String' || asmType === 'java/lang/CharSequence')) return true;
     if ((type === 'bool' || type === 'boolean') && (asmType === 'Z' || asmType === 'java/lang/Boolean')) return true;
-    return getTypeString(value) === asmType;
+    const typeString = getTypeString(value);
+    if (typeString === asmType)
+        return true;
+    if (value instanceof JvmClass)
+        return value.isInstanceOf(asmType)
+    return false;
+}
+
+function assertAsmType(name, obj, asmType) {
+    if (!compareTypes(obj, asmType)) {
+        throw new JvmError(`val${name} wasn't of asmType '${asmType}', it was '${getTypeString(obj)}' instead.`);
+    }
+}
+
+function stripAsmDesc(desc) {
+    while (desc.startsWith('['))
+        desc = desc.substring(1);
+    if (desc.startsWith('L'))
+        desc = desc.substring(1, desc.length - 1);
+    return desc;
+}
+
+function isPrimitiveDesc(desc) {
+    switch (desc) {
+        case 'B':
+        case 'C':
+        case 'S':
+        case 'I':
+        case 'F':
+        case 'D':
+        case 'J':
+        case 'Z':
+        case 'V':
+            return true;
+    }
+    return false;
 }
 
 /**
