@@ -8,15 +8,19 @@ function toShort(num) {
 }
 
 function intToBytes(num, reverse = true) {
-    const buffer = new Uint8Array([
+    return reverse ? [
         (num & 0xff000000) >> 24,
         (num & 0x00ff0000) >> 16,
         (num & 0x0000ff00) >> 8,
         (num & 0x000000ff)
-    ]);
-    if (reverse) buffer.reverse();
-    return [...buffer];
+    ] : [
+        (num & 0x000000ff),
+        (num & 0x0000ff00) >> 8,
+        (num & 0x00ff0000) >> 16,
+        (num & 0xff000000) >> 24
+    ];
 }
+
 
 function shortToBytes(num, reverse = true) {
     const low = (num & 0xFF);
@@ -45,14 +49,13 @@ function readShort(buffer, offset) {
 }
 
 /* Read 4 bytes, then create an unsigned int */
-function readUInt(buffer, offset) {
-    const bytes = [
-        (buffer[offset + 3] & 0xFF) << 24,
-        (buffer[offset + 2] & 0xFF) << 16,
-        (buffer[offset + 1] & 0xFF) << 8,
-        (buffer[offset    ] & 0xFF)
-    ];
-    return (bytes[3] | bytes[2] | bytes[1] | bytes[0]) >>> 0;
+function readInt(buffer, offset) {
+    return (
+        ((buffer[offset    ] & 0xFF) << 24) |
+        ((buffer[offset + 1] & 0xFF) << 16) |
+        ((buffer[offset + 2] & 0xFF) << 8) |
+        ((buffer[offset + 3] & 0xFF))
+    ) >>> 0;
 }
 
 function readClass(constantUtf8Values, offset, cpInfoOffsets, buffer) {
@@ -109,7 +112,7 @@ function readConst(constantUtf8Values, cpInfoOffsets, constantPoolEntryIndex, bu
         case 3:
         case 4:
         case 5:
-        case 6: return readUInt(buffer, cpInfoOffset);
+        case 6: return readInt(buffer, cpInfoOffset);
         case 7: return getTypeDescriptor(readUTF8(constantUtf8Values, cpInfoOffset, cpInfoOffsets));
         case 8: return readUTF8(constantUtf8Values, cpInfoOffset, cpInfoOffsets);
 
