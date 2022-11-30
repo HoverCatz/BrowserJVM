@@ -12,6 +12,16 @@ const JvmNumberType = {
     Double: 'JvmDouble',
 }
 
+const JvmNumberAsmSymbols = {
+    Byte: 'B',
+    Char: 'C',
+    Short: 'S',
+    Int: 'I',
+    Float: 'F',
+    Long: 'J',
+    Double: 'D'
+}
+
 class JvmNumber {
 
     /**
@@ -25,13 +35,33 @@ class JvmNumber {
     type;
 
     /**
+     * @type {string}
+     */
+    asmSymbol;
+
+    /**
      * @param value {number|BigInt}
      * @param type {JvmNumberType}
+     * @param asmSymbol {string}
      */
-    constructor(value, type) {
+    constructor(value, type, asmSymbol) {
         this.value = value;
         this.type = type;
+        this.asmSymbol = asmSymbol;
     }
+
+    /** Do math operation (this + other) */ addWithOther(other) { }
+    /** Do math operation (this - other) */ subWithOther(other) { }
+    /** Do math operation (this * other) */ mulWithOther(other) { }
+    /** Do math operation (this / other) */ divWithOther(other) { }
+    /** Do math operation (this % other) */ remWithOther(other) { }
+    /** Do math operation (this << other) */ shlWithOther(other) { }
+    /** Do math operation (this >> other) */ shrWithOther(other) { }
+    /** Do math operation (this >>> other) */ ushrWithOther(other) { }
+    /** Do math operation (this & other) */ andWithOther(other) { }
+    /** Do math operation (this | other) */ orWithOther(other) { }
+    /** Do math operation (this ^ other) */ xorWithOther(other) { }
+    /** Do math operation (-this) */ neg() { }
 
     /**
      * Set number value
@@ -52,9 +82,11 @@ class JvmNumber {
     /**
      * Adds a value to this number
      * @param value {number|BigInt}
+     * @returns {this}
      */
     add(value) {
         this.value = value;
+        return this;
     }
 
     /**
@@ -91,7 +123,7 @@ class JvmNumber {
      * @returns {string}
      */
     getAsmType() {
-        return 'JvmNumber';
+        return this.asmSymbol;
     }
 
     /**
@@ -115,7 +147,7 @@ class JvmByte extends JvmNumber {
 
     /** @param value {number|BigInt} */
     constructor(value) {
-        super(JvmByte.#clamp(value), JvmNumberType.Byte);
+        super(JvmByte.#clamp(value), JvmNumberType.Byte, JvmNumberAsmSymbols.Byte);
     }
 
     static of(value) {
@@ -153,10 +185,7 @@ class JvmByte extends JvmNumber {
             value = BigInt.asIntN(8, value);
         value = JvmByte.#clamp(value) + JvmByte.#clamp(toAdd);
         this.value = JvmByte.#clamp(value);
-    }
-
-    getAsmType() {
-        return 'B';
+        return this;
     }
 
     toString() {
@@ -173,7 +202,7 @@ class JvmChar extends JvmNumber {
 
     /** @param value {number|BigInt} */
     constructor(value) {
-        super(JvmChar.#clamp(value), JvmNumberType.Char);
+        super(JvmChar.#clamp(value), JvmNumberType.Char, JvmNumberAsmSymbols.Char);
     }
 
     static of(value) {
@@ -211,10 +240,7 @@ class JvmChar extends JvmNumber {
             value = BigInt.asIntN(8, value);
         value = JvmChar.#clamp(value) + JvmChar.#clamp(toAdd);
         this.value = JvmChar.#clamp(value);
-    }
-
-    getAsmType() {
-        return 'C';
+        return this;
     }
 
     toString() {
@@ -231,7 +257,7 @@ class JvmShort extends JvmNumber {
 
     /** @param value {number|BigInt} */
     constructor(value) {
-        super(JvmShort.#clamp(value), JvmNumberType.Short);
+        super(JvmShort.#clamp(value), JvmNumberType.Short, JvmNumberAsmSymbols.Short);
     }
 
     static of(value) {
@@ -269,10 +295,7 @@ class JvmShort extends JvmNumber {
             value = BigInt.asIntN(16, value);
         value = JvmShort.#clamp(value) + JvmShort.#clamp(toAdd);
         this.value = JvmShort.#clamp(value);
-    }
-
-    getAsmType() {
-        return 'S';
+        return this;
     }
 
     toString() {
@@ -289,14 +312,31 @@ class JvmInteger extends JvmNumber {
 
     /** @param value {number|BigInt} */
     constructor(value) {
-        // const typeString = getTypeString(value);
-        // const numberType = getNumberType(typeString);
-        super(JvmInteger.#clamp(value), JvmNumberType.Int);
+        super(JvmInteger.#clamp(value), JvmNumberType.Int, JvmNumberAsmSymbols.Int);
     }
 
+    /**
+     * Create a new {JvmInteger} instance by value
+     * @param value {number|BigInt}
+     * @returns {JvmInteger}
+     */
     static of(value) {
         return new JvmInteger(value);
     }
+
+    /* Some math operations */
+    addWithOther(other) { return JvmInteger.of(this.get() + other.get()); }
+    subWithOther(other) { return JvmInteger.of(this.get() - other.get()); }
+    mulWithOther(other) { return JvmInteger.of(this.get() * other.get()); }
+    divWithOther(other) { return JvmInteger.of(this.get() / other.get()); }
+    remWithOther(other) { return JvmInteger.of(this.get() % other.get()); }
+    shlWithOther(other) { return JvmInteger.of(this.get() << other.get()); }
+    shrWithOther(other) { return JvmInteger.of(this.get() >> other.get()); }
+    ushrWithOther(other) { return JvmInteger.of(this.get() >>> other.get()); }
+    andWithOther(other) { return JvmInteger.of(this.get() & other.get()); }
+    orWithOther(other) { return JvmInteger.of(this.get() | other.get()); }
+    xorWithOther(other) { return JvmInteger.of(this.get() ^ other.get()); }
+    neg() { return JvmInteger.of(-this.get()); }
 
     /**
      * @param value {number|BigInt}
@@ -330,10 +370,7 @@ class JvmInteger extends JvmNumber {
             value = BigInt.asIntN(32, value);
         value = JvmInteger.#clamp(value) + JvmInteger.#clamp(toAdd);
         this.value = JvmInteger.#clamp(value);
-    }
-
-    getAsmType() {
-        return 'I';
+        return this;
     }
 
     toString() {
@@ -353,12 +390,20 @@ class JvmFloat extends JvmNumber {
 
     /** @param value {number} */
     constructor(value) {
-        super(Math.fround(value), JvmNumberType.Float);
+        super(Math.fround(value), JvmNumberType.Float, JvmNumberAsmSymbols.Float);
     }
 
     static of(value) {
         return new JvmFloat(value);
     }
+
+    /* Some math operations */
+    addWithOther(other) { return JvmFloat.of(this.get() + other.get()); }
+    subWithOther(other) { return JvmFloat.of(this.get() - other.get()); }
+    mulWithOther(other) { return JvmFloat.of(this.get() * other.get()); }
+    divWithOther(other) { return JvmFloat.of(this.get() / other.get()); }
+    remWithOther(other) { return JvmFloat.of(this.get() % other.get()); }
+    neg() { return JvmFloat.of(-this.get()); }
 
     set(toAdd) {
         if (typeof toAdd === 'bigint')
@@ -375,10 +420,7 @@ class JvmFloat extends JvmNumber {
         if (typeof toAdd === 'bigint')
             toAdd = Number(BigInt.asIntN(32, toAdd));
         this.set(this.get() + Math.fround(toAdd));
-    }
-
-    getAsmType() {
-        return 'F';
+        return this;
     }
 
     toString() {
@@ -398,12 +440,26 @@ class JvmLong extends JvmNumber {
 
     /** @param value {number|BigInt} */
     constructor(value) {
-        super(JvmLong.#clamp(value), JvmNumberType.Long);
+        super(JvmLong.#clamp(value), JvmNumberType.Long, JvmNumberAsmSymbols.Long);
     }
 
     static of(value) {
         return new JvmLong(value);
     }
+
+    /* Some math operations */
+    addWithOther(other) { return JvmLong.of(this.get() + other.get()); }
+    subWithOther(other) { return JvmLong.of(this.get() - other.get()); }
+    mulWithOther(other) { return JvmLong.of(this.get() * other.get()); }
+    divWithOther(other) { return JvmLong.of(this.get() / other.get()); }
+    remWithOther(other) { return JvmLong.of(this.get() % other.get()); }
+    shlWithOther(other) { return JvmLong.of(this.get() << other.get()); }
+    shrWithOther(other) { return JvmLong.of(this.get() >> other.get()); }
+    ushrWithOther(other) { return JvmLong.of(this.get() >>> other.get()); }
+    andWithOther(other) { return JvmLong.of(this.get() & other.get()); }
+    orWithOther(other) { return JvmLong.of(this.get() | other.get()); }
+    xorWithOther(other) { return JvmLong.of(this.get() ^ other.get()); }
+    neg() { return JvmLong.of(-this.get()); }
 
     /**
      * @param value {number|BigInt}
@@ -438,10 +494,7 @@ class JvmLong extends JvmNumber {
             value = BigInt(value);
         value = JvmLong.#clamp(value) + JvmLong.#clamp(toAdd);
         this.value = JvmLong.#clamp(value);
-    }
-
-    getAsmType() {
-        return 'J';
+        return this;
     }
 
     toString() {
@@ -461,12 +514,20 @@ class JvmDouble extends JvmNumber {
 
     /** @param value {number|BigInt} */
     constructor(value) {
-        super(JvmDouble.#clamp(value), JvmNumberType.Double);
+        super(JvmDouble.#clamp(value), JvmNumberType.Double, JvmNumberAsmSymbols.Double);
     }
 
     static of(value) {
         return new JvmDouble(value);
     }
+
+    /* Some math operations */
+    addWithOther(other) { return JvmDouble.of(this.get() + other.get()); }
+    subWithOther(other) { return JvmDouble.of(this.get() - other.get()); }
+    mulWithOther(other) { return JvmDouble.of(this.get() * other.get()); }
+    divWithOther(other) { return JvmDouble.of(this.get() / other.get()); }
+    remWithOther(other) { return JvmDouble.of(this.get() % other.get()); }
+    neg() { return JvmDouble.of(-this.get()); }
 
     /**
      * @param value {number|BigInt}
@@ -477,8 +538,15 @@ class JvmDouble extends JvmNumber {
         return value;
     }
 
-    getAsmType() {
-        return 'D';
+    add(toAdd) {
+        if (typeof toAdd === 'bigint')
+            toAdd = Number(toAdd);
+        let value = this.value;
+        if (typeof value === 'bigint')
+            value = Number(value);
+        value = JvmDouble.#clamp(value) + JvmDouble.#clamp(toAdd);
+        this.value = JvmDouble.#clamp(value);
+        return this;
     }
 
     /** @type {number} */
