@@ -1,18 +1,18 @@
 class JvmFunction {
 
-    ownerClass; // JvmClass
+    /** @type JvmClass */ ownerClass;
 
-    accessFlags; // int
-    functionName; // String
-    functionDesc; // String
-    isStaticInstance; // boolean
+    /** @type number */ accessFlags;
+    /** @type string */ functionName;
+    /** @type string */ functionDesc;
+    /** @type boolean */ isStaticInstance;
 
-    instructions; // INode[]
-    tryCatches; // JvmTryCatch[]
+    /** @type INode[] */ instructions;
+    /** @type JvmTryCatch[] */ tryCatches;
 
-    isLoaded = false;
+    /** @type boolean */ isLoaded = false;
 
-    static staticInstances = {}; // Key: 'ownerPackage/ownerClassName functionNameFunctionDesc'
+    static staticInstances = {}; // Key: 'packageAndName functionNameFunctionDesc'
 
     constructor(ownerClass, accessFlags, functionName, functionDesc) {
         this.ownerClass = ownerClass;
@@ -45,25 +45,54 @@ class JvmFunction {
             throw new Error('Function `' + this.getPath() + '` isn\'t loaded.');
         }
         let pointer = 0;
-        let lineNumber = 0;
+        let lineNumber = -1;
+        let lastOpcode = -1;
         const len = this.instructions.length;
         // Loop through all instructions
         while (pointer >= 0 && pointer < len) {
             try {
+                // Current pointer position
                 const pc = pointer;
+
+                // A referenced list of the PC but also the lineNumber
+                const output = [pc, lineNumber];
+
                 // Retrieve current instruction
                 const insn = this.instructions[pc];
+
+                // Set the last opcode used (for error messages)
+                lastOpcode = insn.opcode;
+
                 // Actually execute instruction
-                insn.execute(locals, stack);
+                insn.execute(locals, stack, output);
+
                 // Check return value
-                if (insn.doReturn) {
+                if (insn.doReturn)
                     return insn.retValue;
-                }
+
+                // Check return void
+                if (output[0] === -1) // -1 means Return
+                    break;
+
                 // Only go to next instruction if we didn't jump elsewhere
                 if (pc === pointer)
                     pointer++;
+
+                // Set the current lineNumber
+                lineNumber = output[1];
             } catch (e) {
+                if (lineNumber >= 0)
+                    console.error(`${e.type.replaceAll('/', '.')}: ${e.message}\n` +
+                        `\tat ${this.ownerClass.className}.${this.functionName}(${this.ownerClass.className}:${lineNumber})`);
+                    // console.error('Error `' + e.message + '` at line #' + lineNumber + ' ' +
+                    //     '(instruction index #' + pointer + ', instruction `' + OpcodesReverse[lastOpcode] + '`)');
+                else
+                    console.error(`${e.type.replaceAll('/', '.')}: ${e.message}\n` +
+                        `\tat ${this.ownerClass.className}.${this.functionName}(${this.ownerClass.className}:?)`);
+                    // console.error(e.type.replaceAll('/', '.') + ' `' + e.message + '` at unknown line ' +
+                    //     '(instruction index #' + pointer + ', instruction `' + OpcodesReverse[lastOpcode] + '`)');
                 // TODO: Catch error, jump to handler
+                // Use `lineNumber` if available.
                 break;
             }
         }
@@ -75,7 +104,7 @@ class JvmFunction {
      * @throws {Error}
      */
     getOrCreate() {
-        if (isStatic(this.accessFlags))
+        if (this.isStaticInstance)
             return this.newInstance(true);
         return this.newInstance();
     }
@@ -88,7 +117,7 @@ class JvmFunction {
     newInstance(useStatic = false) {
         let staticKey;
         const accessFlags = this.accessFlags;
-        const isStaticFunction = isStatic(accessFlags);
+        const isStaticFunction = this.isStaticInstance;
         if (useStatic && !isStaticFunction) {
             throw new Error('Function `' + this.getPath() + '` isn\'t static.');
         }
@@ -140,6 +169,14 @@ class JvmFunction {
             throw new Error('Function `' + this.getPath() + '` isn\'t static.');
         }
         return this.newInstance(true);
+    }
+
+    /**
+     * Returns the local function path to this Function.
+     * @returns {string}
+     */
+    getFuncPath() {
+        return this.functionName + '' + this.functionDesc;
     }
 
     /**

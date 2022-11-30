@@ -1,15 +1,17 @@
 class JvmField {
 
-    ownerClass; // JvmClass
+    /** @type JvmClass */ ownerClass;
 
-    accessFlags; // int
-    fieldName; // String
-    fieldDesc; // String
-    isStaticInstance; // boolean
+    /** @type number */ accessFlags;
+    /** @type string */ fieldName;
+    /** @type string */ fieldDesc;
 
-    value; // any
+    /** @type boolean */ isFinalInstance;
+    /** @type boolean */ isStaticInstance;
 
-    isLoaded = false;
+    /** @type any */ value; // any
+
+    /** @type boolean */ isLoaded = false;
 
     static staticInstances = {}; // Key: 'ownerPackage/ownerClassName fieldName fieldDesc'
 
@@ -18,21 +20,30 @@ class JvmField {
         this.accessFlags = accessFlags;
         this.fieldName = fieldName;
         this.fieldDesc = fieldDesc;
+        this.isFinalInstance = isFinal(accessFlags);
         this.isStaticInstance = isStatic(accessFlags);
+        if (this.isStaticInstance) {
+            const staticKey = this.getPath();
+            if (!(staticKey in JvmField.staticInstances)) {
+                JvmField.staticInstances[staticKey] = this;
+            }
+        }
     }
 
     /**
-     * Set the value of this Field. Throws an error if the field is Final and if we already set a value earlier.
+     * Set the value of this Field.
+     * Throws an error if we attempt to reassign a Final field, or if we try setting a value of the wrong type.
      * @param value
      * @throws {Error}
      */
     setValue(value = null) {
-        const isFinalField = isFinal(this.accessFlags);
+        const isFinalField = this.isFinalInstance;
         const isLoaded = this.isLoaded;
         if (isFinalField && isLoaded) {
             throw new Error('Final field `' + this.getPath() + '` can\'t be reassigned.');
         }
-        if (!compareTypes(value, this.fieldDesc)) {
+        const desc = this.fieldDesc;
+        if (desc !== 'Ljava/lang/Object;' && !compareTypes(value, desc)) {
             throw new Error('Field `' + this.getPath() + '` is of wrong type. ValueType=`' + getTypeString(value) + '`, FieldDesc=`' + this.fieldDesc + '`');
         }
         this.value = value;
@@ -41,20 +52,31 @@ class JvmField {
     }
 
     /**
+     * Set the value of this Field. Throws an error if the field is Final and if we already set a value earlier.
+     * @param value
+     * @throws {Error}
+     */
+    set(value = null) { this.setValue(value); }
+
+    /**
      * Returns the value from this Field.
-     * @returns {any|null}
+     * @returns {any}
      * @throws {Error}
      */
     getValue() {
-        const isFinalField = isFinal(this.accessFlags);
+        const isFinalField = this.isFinalInstance;
         if (isFinalField && !this.isLoaded) {
             throw new Error('Field `' + this.getPath() + '` isn\'t loaded.');
         }
-        const value = this.value;
-        if (value instanceof JvmNumber)
-            return value.get();
-        return value;
+        return this.value;
     }
+
+    /**
+     * Returns the value from this Field.
+     * @returns {any}
+     * @throws {Error}
+     */
+    get() { return this.getValue(); }
 
     /**
      * Get or create a new instance (static or not) of this Field.
@@ -62,7 +84,7 @@ class JvmField {
      * @throws {Error}
      */
     getOrCreate() {
-        if (isStatic(this.accessFlags))
+        if (this.isStaticInstance)
             return this.newInstance(true);
         return this.newInstance();
     }
@@ -73,7 +95,7 @@ class JvmField {
      * @throws {Error}
      */
     newInstance(useStatic = false) {
-        let staticKey;
+        const staticKey = this.getPath();
         const accessFlags = this.accessFlags;
         const isStaticField = isStatic(accessFlags);
         if (useStatic && !isStaticField) {
@@ -86,19 +108,23 @@ class JvmField {
         const fieldDesc = this.fieldDesc;
         const owner = this.ownerClass;
         if (isStaticField) {
-            const ownerPkg = (owner.package.length > 0) ? (owner.package + '/') : '';
-            const ownerClassName = owner.className;
-            staticKey = ownerPkg + ownerClassName + ' ' + fieldName + ' ' + fieldDesc;
+            // This should always return an existing value.
             if (staticKey in JvmField.staticInstances) {
                 console.log('returning an existing static field');
                 return JvmField.staticInstances[staticKey];
+            } else {
+                // But if it doesn't, then something is wrong.
+                throw new Error('Something went wrong while trying to fetch the existing static field.');
             }
         }
         const field = new JvmField(owner, accessFlags, fieldName, fieldDesc);
-        field.setValue(this.value);
+        if (typeof this.value !== 'undefined')
+            field.setValue(this.value);
         if (isStaticField) {
             console.log('creating a new static field:', staticKey);
-            JvmField.staticInstances[staticKey] = field;
+            if (!(staticKey in JvmField.staticInstances)) {
+                JvmField.staticInstances[staticKey] = field;
+            }
         } else {
             console.log('creating a new field instance');
         }
@@ -127,6 +153,17 @@ class JvmField {
             throw new Error('Field `' + this.getPath() + '` isn\'t static.');
         }
         return this.newInstance(true);
+    }
+
+    /**
+     * Returns the field-path to this Field.
+     * @returns {string}
+     */
+    getFieldPath(asmSymbols = false) {
+        let desc = this.fieldDesc;
+        if (asmSymbols && isPrimitiveDesc(desc))
+            desc = 'L' + desc + ';';
+        return this.fieldName + '.' + desc;
     }
 
     /**
