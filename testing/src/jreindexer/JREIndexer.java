@@ -1,3 +1,5 @@
+package jreindexer;
+
 import com.google.gson.*;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Type;
