@@ -4,3 +4,4 @@
 *.zip
 /out/
 /.idea/
+/testing/src/numbertesting/
