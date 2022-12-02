@@ -58,6 +58,13 @@ function readInt(buffer, offset) {
     ) >>> 0;
 }
 
+/* Read 4 bytes - twice */
+function readLong(buffer, offset) {
+    const l1 = BigInt(readInt(buffer, offset));
+    const l0 = BigInt(readInt(buffer, offset + 4) & 0xFFFFFFFF);
+    return (l1 << 32n) | l0; // WARN: Shift with overly large value (32)
+}
+
 function readClass(constantUtf8Values, offset, cpInfoOffsets, buffer) {
     return readStringish(constantUtf8Values, offset, cpInfoOffsets, buffer);
 }
@@ -106,20 +113,50 @@ function getMethodDescriptor(desc) {
     return 'L' + desc + ';';
 }
 
-function readConst(constantUtf8Values, cpInfoOffsets, constantPoolEntryIndex, buffer) {
+// https://github.com/mattdesl/number-util/blob/master/index.js
+const int8 = new Int8Array(4);
+const int32 = new Int32Array(int8.buffer, 0, 1);
+const float32 = new Float32Array(int8.buffer, 0, 1);
+function intBitsToFloat(i) {
+    int32[0] = i;
+    return float32[0];
+}
+function floatToIntBits(f) {
+    float32[0] = f;
+    return int32[0];
+}
+const long16 = new Int16Array(4); // Not sure if 4 or 8, 4 seems to work
+const long64 = new BigInt64Array(long16.buffer, 0, 1);
+const double64 = new Float64Array(long16.buffer, 0, 1);
+function longBitsToDouble(l) {
+    long64[0] = l;
+    return double64[0];
+}
+function doubleToLongBits(d) {
+    double64[0] = d;
+    return long64[0];
+}
+
+function readConst(constantUtf8Values, cpInfoOffsets, constantPoolEntryIndex, bytes) {
     let cpInfoOffset = cpInfoOffsets[constantPoolEntryIndex];
-    switch (buffer[cpInfoOffset - 1]) {
-        case 3:
-        case 4:
-        case 5:
-        case 6: return readInt(buffer, cpInfoOffset);
-        case 7: return getTypeDescriptor(readUTF8(constantUtf8Values, cpInfoOffset, cpInfoOffsets));
-        case 8: return readUTF8(constantUtf8Values, cpInfoOffset, cpInfoOffsets);
+    const symbol = bytes[cpInfoOffset - 1];
+    console.log('symbol:', symbol)
+    switch (symbol) {
+
+        /* int   */ case 3: return readInt(bytes, cpInfoOffset);
+        /* float */ case 4: return intBitsToFloat(readInt(bytes, cpInfoOffset));
+
+        /* long */ case 5: return readLong(bytes, cpInfoOffset);
+        /* double */ case 6: return longBitsToDouble(readLong(bytes, cpInfoOffset));
+
+        /* class */ case 7: return getTypeDescriptor(readUTF8(constantUtf8Values, cpInfoOffset, cpInfoOffsets, bytes));
+
+        /* string */ case 8: return readUTF8(constantUtf8Values, cpInfoOffset, cpInfoOffsets, bytes);
 
         /* Java8 stuff? */
         case 15:
         case 16:
-        case 17: throw new Error("Not supported.");
+        case 17: throw new Error('Symbol ' + symbol + ' not supported.');
     }
     return '';
 }
@@ -145,7 +182,16 @@ function writeUnsignedShort(buffer, s) {
 
 // Util functions
 
-
+function isWide(object) {
+    if (object === null) return false;
+    const type = typeof object;
+    if (type === 'string') return false; else
+    if (type === 'number') return false; else
+    if (type === 'bigint') return true; else // bigint == long
+    if (object instanceof JvmClass && (object instanceof JvmLong || object instanceof JvmDouble))
+        return true;
+    return false;
+}
 
 /* ########## */
 
