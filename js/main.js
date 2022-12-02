@@ -19,7 +19,7 @@
         testFunction.load(insns);
     }
     clazzTestRoot.load(
-        {[testField.getFieldPath()]: testFunction},
+        {[testField.getFieldPath()]: testField},
         {[testFunction.getFuncPath()]: testFunction}
     );
     let clz = clazzTestRoot.newInstance();

@@ -160,7 +160,8 @@ class JvmClass {
         const newFields = {};
         for (const index in this.fields) {
             const field = this.fields[index];
-            const newField = new JvmField(clz, field.accessFlags, field.fieldName, field.fieldDesc);
+            let newField = new JvmField(clz, field.accessFlags, field.fieldName, field.fieldDesc);
+            if (!newField.isStaticInstance) newField = newField.newInstance();
             newFields[newField.getFieldPath()] = newField;
         }
         const newFunctions = {};
