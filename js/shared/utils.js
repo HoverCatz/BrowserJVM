@@ -74,9 +74,6 @@ function castObjectTo(obj, toType) {
         switch (toType) {
             case 'string':
                 return obj.toString();
-            case 'i':
-            case 'int':
-            case 'integer':
             case 'number': {
                 const val = obj.get();
                 if (typeof val === 'bigint')
@@ -95,13 +92,13 @@ function castObjectTo(obj, toType) {
                     val = Number(val);
                 return val !== 0;
             } break;
-            case 'JvmByte'.toLowerCase(): return JvmByte.of(obj.get());
-            case 'JvmChar'.toLowerCase(): return JvmChar.of(obj.get());
-            case 'JvmShort'.toLowerCase(): return JvmShort.of(obj.get());
-            case 'JvmInteger'.toLowerCase(): return JvmInteger.of(obj.get());
-            case 'JvmFloat'.toLowerCase(): return JvmFloat.of(obj.get());
-            case 'JvmLong'.toLowerCase(): return JvmLong.of(obj.get());
-            case 'JvmDouble'.toLowerCase(): return JvmDouble.of(obj.get());
+            case 'b': case 'JvmByte'.toLowerCase(): return JvmByte.of(obj.get());
+            case 'c': case 'JvmChar'.toLowerCase(): return JvmChar.of(obj.get());
+            case 's': case 'JvmShort'.toLowerCase(): return JvmShort.of(obj.get());
+            case 'i': case 'JvmInteger'.toLowerCase(): return JvmInteger.of(obj.get());
+            case 'f': case 'JvmFloat'.toLowerCase(): return JvmFloat.of(obj.get());
+            case 'j': case 'JvmLong'.toLowerCase(): return JvmLong.of(obj.get());
+            case 'd': case 'JvmDouble'.toLowerCase(): return JvmDouble.of(obj.get());
         }
     }
     switch (type) {
@@ -214,8 +211,10 @@ function getTypeString(obj) {
     if (type === 'function') return 'function';
     if (obj instanceof JvmNumber)
         return obj.getAsmType();
-    if (obj instanceof JvmClass)
+    else if (obj instanceof JvmClass)
         return obj.getPath(true);
+    else if (obj instanceof JvmArray) // TODO: Check if this causes an issue
+        return '[' + getTypeString(obj.value);
     return obj.constructor.name;
 }
 
@@ -257,11 +256,12 @@ function compareTypes(value, asmType) {
     const type = typeof value;
     if (type === 'string' && (asmType === 'java/lang/String' || asmType === 'java/lang/CharSequence')) return true;
     if ((type === 'bool' || type === 'boolean') && (asmType === 'Z' || asmType === 'java/lang/Boolean')) return true;
-    const typeString = getTypeString(value);
-    if (typeString === asmType)
+    if (getTypeString(value) === asmType)
+        return true;
+    if (value instanceof JvmNumber && value.constructor.name === asmType)
         return true;
     if (value instanceof JvmClass)
-        return value.isInstanceOf(asmType)
+        return value.isInstanceOf(asmType) || value.constructor.name === asmType;
     return false;
 }
 
@@ -277,6 +277,51 @@ function stripAsmDesc(desc) {
     if (desc.startsWith('L'))
         desc = desc.substring(1, desc.length - 1);
     return desc;
+}
+
+function getReturnType(desc) {
+    return desc.substring(desc.lastIndexOf(')') + 1);
+}
+
+function getArgumentTypes(desc) {
+    desc = desc.substring(1, desc.indexOf(')'));
+    const types = [];
+    let currentString = '';
+    let inString = false;
+    let inArray = 0;
+    for (const index in desc) {
+        const c = desc[index];
+        if (c === '[') {
+            inArray++;
+            continue;
+        }
+        if (c === 'L') {
+            inString = true;
+            continue;
+        }
+        if (c === ';' && inString) {
+            if (inArray) {
+                types.push('['.repeat(inArray) + 'L' + currentString + ';');
+            } else {
+                types.push('L' + currentString + ';');
+            }
+            currentString = '';
+            inString = false;
+            inArray = 0;
+            continue;
+        }
+        if (!inString) {
+            if (inArray) {
+                types.push('['.repeat(inArray) + c);
+                inArray = 0;
+            } else {
+                types.push(c);
+            }
+        } else {
+            currentString += c;
+        }
+    }
+    return types;
 }
 
 function isPrimitiveDesc(desc) {
@@ -335,7 +380,7 @@ function getNumberType(asmType) {
             return JvmNumberType.Float; // JvmNumber type `float`
 
         // 64-bit
-        case 'l': // L
+        case 'j': // J
         case 'long': // long/Long
         case 'java/lang/long': // java/lang/Long
         case 'ljava/lang/long;': // Ljava/lang/Long;
