@@ -12,13 +12,32 @@ class JvmFunction {
 
     /** @type boolean */ isLoaded = false;
 
-    static staticInstances = {}; // Key: 'packageAndName functionNameFunctionDesc'
+    // Asm
+    /** @type string|null */ signature = null;
+    /** @type [] */ exceptions;
+
+    static staticInstances = {}; // Key: 'packageAndClassName functionName(functionDesc)'
 
     constructor(ownerClass, accessFlags, functionName, functionDesc) {
         this.ownerClass = ownerClass;
+        if (!!functionName) {
+            this.accessFlags = accessFlags;
+            this.functionName = functionName;
+            this.functionDesc = functionDesc;
+            this.isStaticInstance = isStatic(accessFlags);
+            this.exceptions = [];
+        }
+    }
+
+    /**
+     Only meant to be used directly by ASM
+     */
+    asmLoad(accessFlags, functionName, functionDesc, signature, exceptions) {
         this.accessFlags = accessFlags;
         this.functionName = functionName;
         this.functionDesc = functionDesc;
+        this.signature = signature;
+        this.exceptions = exceptions;
         this.isStaticInstance = isStatic(accessFlags);
     }
 
@@ -40,13 +59,18 @@ class JvmFunction {
      * Execute this function
      * @returns {null|*}
      */
-    execute(locals = [...Array(0)], stack = []) {
+    execute(locals = [], stack = new JvmStack()) {
         if (!this.isLoaded) {
-            throw new Error('Function `' + this.getPath() + '` isn\'t loaded.');
+            throw new Error(`Function ${this.getPath()} isn't loaded.`);
         }
+        this.#assertArgumentCount(locals);
         let pointer = 0;
         let lineNumber = -1;
         let lastOpcode = -1;
+        const refs = {
+            'pointer': pointer,
+            'lineNumber': lineNumber
+        };
         const len = this.instructions.length;
         // Loop through all instructions
         while (pointer >= 0 && pointer < len) {
@@ -54,8 +78,9 @@ class JvmFunction {
                 // Current pointer position
                 const pc = pointer;
 
-                // A referenced list of the PC but also the lineNumber
-                const output = [pc, lineNumber];
+                // A referenced list of the Pointer but also the lineNumber
+                refs.pc = pc;
+                refs.lineNumber = lineNumber;
 
                 // Retrieve current instruction
                 const insn = this.instructions[pc];
@@ -64,14 +89,16 @@ class JvmFunction {
                 lastOpcode = insn.opcode;
 
                 // Actually execute instruction
-                insn.execute(locals, stack, output);
+                insn.execute(locals, stack, refs);
 
                 // Check return value
-                if (insn.doReturn)
+                if (insn.doReturn) {
+                    this.assertReturnType(lastOpcode);
                     return insn.retValue;
+                }
 
                 // Check return void
-                if (output[0] === -1) // -1 means Return
+                if (refs.pc === -1) // -1 means Return
                     break;
 
                 // Only go to next instruction if we didn't jump elsewhere
@@ -79,18 +106,22 @@ class JvmFunction {
                     pointer++;
 
                 // Set the current lineNumber
-                lineNumber = output[1];
+                lineNumber = refs.lineNumber;
             } catch (e) {
-                if (lineNumber >= 0)
-                    console.error(`${e.type.replaceAll('/', '.')}: ${e.message}\n` +
-                        `\tat ${this.ownerClass.className}.${this.functionName}(${this.ownerClass.className}:${lineNumber})`);
-                    // console.error('Error `' + e.message + '` at line #' + lineNumber + ' ' +
+                if (e instanceof JvmError) {
+                    if (lineNumber >= 0)
+                        console.error(`${e.type.replaceAll('/', '.')}: ${e.message}\n` +
+                            `\tat ${this.ownerClass.className}.${this.functionName}(${this.ownerClass.className}:${lineNumber})`);
+                        // console.error('Error `' + e.message + '` at line #' + lineNumber + ' ' +
                     //     '(instruction index #' + pointer + ', instruction `' + OpcodesReverse[lastOpcode] + '`)');
-                else
-                    console.error(`${e.type.replaceAll('/', '.')}: ${e.message}\n` +
-                        `\tat ${this.ownerClass.className}.${this.functionName}(${this.ownerClass.className}:?)`);
+                    else
+                        console.error(`${e.type.replaceAll('/', '.')}: ${e.message}\n` +
+                            `\tat ${this.ownerClass.className}.${this.functionName}(${this.ownerClass.className}:?)`);
                     // console.error(e.type.replaceAll('/', '.') + ' `' + e.message + '` at unknown line ' +
                     //     '(instruction index #' + pointer + ', instruction `' + OpcodesReverse[lastOpcode] + '`)');
+                } else {
+                    console.error(e)
+                }
                 // TODO: Catch error, jump to handler
                 // Use `lineNumber` if available.
                 break;
@@ -193,6 +224,30 @@ class JvmFunction {
      */
     getDottedPath() {
         return this.ownerClass.getDottedPath() + ' ' + this.functionName + '' + this.functionDesc;
+    }
+
+    /**
+     * Verify the return-type with the opcode
+     * @param opcode
+     */
+    assertReturnType(opcode) {
+        if (opcode === Opcodes.ARETURN) return true;
+        const type = getReturnType(this.functionDesc);
+        if ((opcode === Opcodes.IRETURN && (
+                type === 'Z' || type === 'B' ||
+                type === 'C' || type === 'S' || type === 'I')) ||
+                (opcode === Opcodes.LRETURN && type === 'L') ||
+                (opcode === Opcodes.FRETURN && type === 'F') ||
+                (opcode === Opcodes.DRETURN && type === 'D'))
+            return true;
+        throw new Error(`Wrong return opcode '${OpcodesReverse[opcode]}' for function '${this.getFuncPath()}'`);
+    }
+
+    #assertArgumentCount(locals) {
+        let argumentTypes = getArgumentTypes(this.functionDesc).length;
+        if (!this.isStaticInstance) argumentTypes++;
+        if (argumentTypes != locals.length)
+            throw new JvmError(`Wrong amount of arguments (${locals.length}) provided for method '${this.getFuncPath()}'! Expecting ${argumentTypes}.`);
     }
 
 }

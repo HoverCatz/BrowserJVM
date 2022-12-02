@@ -4,8 +4,8 @@ class JvmClass {
     /** @type string */ package;   // package only
     /** @type string */ className; // classname only
     /** @type string */ name;      // full name (package + className)
-    /** @type JvmClass */ superClass;
-    /** @type JvmClass[] */ interfaces;
+    /** @type JvmClass|string */ superClass;
+    /** @type JvmClass[]|string[] */ interfaces;
 
     /** @type JvmField */ fields;
     /** @type JvmFunction */ functions;
@@ -16,6 +16,16 @@ class JvmClass {
     // Jvm
     /** @type boolean */ isLoaded = false;
     /** @type number */ uniqueIdentifier = -1;
+
+    /** @type string */ sourceFile = '';
+    /** @type string */ signature = '';
+    /** @type string */ sourceDebugExtension = '';
+    /** @type string */ nestHostClass = '';
+    /** @type string */ moduleMainClass = '';
+
+    /** @type string[] */ nestMembers;
+    /** @type string[] */ permittedSubClasses;
+    /** @type string[] */ innerClasses;
 
     static uniqueIdentifierIndex = 0;
     static uniqueIdentifierMap = {}; // Key: 'uniqueIdentifier', Value: 'name: JvmClass'
@@ -44,6 +54,22 @@ class JvmClass {
         } else {
             // This should only happen from within ASM!
             // All values will be filled in later when loading from .class files.
+        }
+    }
+
+    /**
+     * Only meant to be used directly by ASM
+     * @param pkg_className
+     */
+    asmSetName(pkg_className) {
+        this.name = pkg_className;
+        if (pkg_className.includes('/')) {
+            const index = pkg_className.lastIndexOf('/');
+            this.package = pkg_className.substring(0, index);
+            this.className = pkg_className.substring(index + 1);
+        } else {
+            this.package = '';
+            this.className = pkg_className;
         }
     }
 
@@ -135,13 +161,13 @@ class JvmClass {
         for (const index in this.fields) {
             const field = this.fields[index];
             const newField = new JvmField(clz, field.accessFlags, field.fieldName, field.fieldDesc);
-            newFields[field.getFieldPath()] = newField;
+            newFields[newField.getFieldPath()] = newField;
         }
         const newFunctions = {};
         for (const index in this.functions) {
             const func = this.functions[index];
             const newFunc = new JvmFunction(clz, func.accessFlags, func.functionName, func.functionDesc);
-            newFunctions.load(func.instructions, func.tryCatches); // TODO: Clone instructions and/or tryCatches too? :>
+            newFunc.load(func.instructions, func.tryCatches); // TODO: Clone instructions and/or tryCatches too? :>
             newFunctions[func.getFuncPath()] = newFunc;
         }
         clz.load(newFields, newFunctions);

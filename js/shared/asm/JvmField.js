@@ -6,6 +6,9 @@ class JvmField {
     /** @type string */ fieldName;
     /** @type string */ fieldDesc;
 
+    /** @type string|null */ signature;
+    /** @type any */ constantValue;
+
     /** @type boolean */ isFinalInstance;
     /** @type boolean */ isStaticInstance;
 
@@ -17,9 +20,45 @@ class JvmField {
 
     constructor(ownerClass, accessFlags, fieldName, fieldDesc) {
         this.ownerClass = ownerClass;
+        if (!!fieldName) {
+            this.accessFlags = accessFlags;
+            this.fieldName = fieldName;
+            this.fieldDesc = fieldDesc;
+            this.isFinalInstance = isFinal(accessFlags);
+            this.isStaticInstance = isStatic(accessFlags);
+            if (this.isStaticInstance) {
+                const staticKey = this.getPath();
+                if (!(staticKey in JvmField.staticInstances)) {
+                    JvmField.staticInstances[staticKey] = this;
+                }
+            }
+            this.signature = null;
+            this.constantValue = null;
+        }
+    }
+
+    /**
+     Only meant to be used directly by ASM
+     */
+    asmLoad(accessFlags, fieldName, fieldDesc, signature, constantValue) {
         this.accessFlags = accessFlags;
         this.fieldName = fieldName;
         this.fieldDesc = fieldDesc;
+        this.signature = signature;
+        this.constantValue = constantValue;
+        if (constantValue !== undefined) {
+            console.log('constantValue:`',constantValue,'`')
+            if (constantValue == null) {
+                this.setValue(null);
+            } else if (isPrimitiveDesc(fieldDesc)) {
+                const num = newJvmNumber(constantValue, getNumberType(fieldDesc));
+                this.setValue(num);
+            } else if (typeof constantValue === 'string') {
+                this.setValue(constantValue);
+            } else {
+                throw new Error('Unknown constant type `' + (typeof constantValue) + '`: `' + constantValue + '`');
+            }
+        }
         this.isFinalInstance = isFinal(accessFlags);
         this.isStaticInstance = isStatic(accessFlags);
         if (this.isStaticInstance) {
