@@ -4,7 +4,7 @@ class InsnNode extends INode {
         super(opcode, input);
     }
 
-    execute(locals, stack, output) {
+    execute(locals, stack, refs) {
         super.execute();
         console.log('executing InsnNode.\n\t\tOpcode: ' + OpcodesReverse[this.opcode] + '.\n\t\t' +
             'Input:`', this.input, '`.\n\t\tLocals:`', locals, '`.\n\t\tStack:`', stack, '`');
@@ -13,9 +13,12 @@ class InsnNode extends INode {
             case Opcodes.NOP:
                 break; // Do nothing!
             case Opcodes.ACONST_NULL:
-                stack.push(JvmNull.get());
+                stack.push(null);
                 break;
 
+            case Opcodes.ICONST_M1:
+                stack.push(JvmInteger.of(-0));
+                break;
             case Opcodes.ICONST_0:
                 stack.push(JvmInteger.of(0));
                 break;
@@ -59,12 +62,131 @@ class InsnNode extends INode {
                 stack.push(JvmDouble.of(1));
                 break;
 
+            case Opcodes.BALOAD: {
+                const index = stack.pop();
+                const array = stack.pop();
+                assertAsmType(1, array, 'JvmArray');
+                const object = array.getItem(index);
+                assertAsmType(1, object, 'B');
+                stack.push(object);
+            } break;
+            case Opcodes.CALOAD: {
+                const index = stack.pop();
+                const array = stack.pop();
+                assertAsmType(1, array, 'JvmArray');
+                const object = array.getItem(index);
+                assertAsmType(1, object, 'C');
+                stack.push(object);
+            } break;
+            case Opcodes.SALOAD: {
+                const index = stack.pop();
+                const array = stack.pop();
+                assertAsmType(1, array, 'JvmArray');
+                const object = array.getItem(index);
+                assertAsmType(1, object, 'S');
+                stack.push(object);
+            } break;
+            case Opcodes.IALOAD: {
+                const index = stack.pop();
+                const array = stack.pop();
+                assertAsmType(1, array, 'JvmArray');
+                const object = array.getItem(index);
+                assertAsmType(1, object, 'I');
+                stack.push(object);
+            } break;
+            case Opcodes.LALOAD: {
+                const index = stack.pop();
+                const array = stack.pop();
+                assertAsmType(1, array, 'JvmArray');
+                const object = array.getItem(index);
+                assertAsmType(1, object, 'J');
+                stack.push(object);
+            } break;
+            case Opcodes.FALOAD: {
+                const index = stack.pop();
+                const array = stack.pop();
+                assertAsmType(1, array, 'JvmArray');
+                const object = array.getItem(index);
+                assertAsmType(1, object, 'F');
+                stack.push(object);
+            } break;
+            case Opcodes.DALOAD: {
+                const index = stack.pop();
+                const array = stack.pop();
+                assertAsmType(1, array, 'JvmArray');
+                const object = array.getItem(index);
+                assertAsmType(1, object, 'D');
+                stack.push(object);
+            } break;
+            case Opcodes.AALOAD: {
+                const index = stack.pop();
+                const array = stack.pop();
+                assertAsmType(1, array, 'JvmArray');
+                stack.push(array.getItem(index));
+            } break;
+
+            case Opcodes.BASTORE: {
+                const value = stack.pop();
+                assertAsmType(1, value, 'B');
+                const index = stack.pop();
+                const array = stack.pop();
+                assertAsmType(1, array, 'JvmArray');
+                array.setItem(index, value);
+            } break;
+            case Opcodes.CASTORE: {
+                const value = stack.pop();
+                assertAsmType(1, value, 'C');
+                const index = stack.pop();
+                const array = stack.pop();
+                assertAsmType(1, array, 'JvmArray');
+                array.setItem(index, value);
+            } break;
+            case Opcodes.IASTORE: {
+                const value = stack.pop();
+                assertAsmType(1, value, 'I');
+                const index = stack.pop();
+                const array = stack.pop();
+                assertAsmType(1, array, 'JvmArray');
+                array.setItem(index, value);
+            } break;
+            case Opcodes.LASTORE: {
+                const value = stack.pop();
+                assertAsmType(1, value, 'L');
+                const index = stack.pop();
+                const array = stack.pop();
+                assertAsmType(1, array, 'JvmArray');
+                array.setItem(index, value);
+            } break;
+            case Opcodes.FASTORE: {
+                const value = stack.pop();
+                assertAsmType(1, value, 'F');
+                const index = stack.pop();
+                const array = stack.pop();
+                assertAsmType(1, array, 'JvmArray');
+                array.setItem(index, value);
+            } break;
+            case Opcodes.DASTORE: {
+                const value = stack.pop();
+                assertAsmType(1, value, 'D');
+                const index = stack.pop();
+                const array = stack.pop();
+                assertAsmType(1, array, 'JvmArray');
+                array.setItem(index, value);
+            } break;
+            case Opcodes.AASTORE: {
+                const value = stack.pop();
+                const index = stack.pop();
+                const array = stack.pop();
+                assertAsmType(1, array, 'JvmArray');
+                array.setItem(index, value);
+            } break;
+
             case Opcodes.POP:
                 stack.pop();
                 break;
             case Opcodes.POP2:
-                stack.pop();
-                if (stack.length > 0) // Just in case!
+                const obj = stack.pop();
+                if (!isWide(obj))
                     stack.pop();
                 break;
 
@@ -83,41 +205,80 @@ class InsnNode extends INode {
             case Opcodes.DUP_X2: {
                 const obj = stack.pop();
                 const obj2 = stack.pop();
-                const obj3 = stack.pop();
-                stack.push(obj);
-                stack.push(obj3);
-                stack.push(obj2);
-                stack.push(obj);
+                if (isWide(obj2)) {
+                    stack.push(obj);
+                    stack.push(obj2);
+                    stack.push(obj);
+                } else {
+                    const obj3 = stack.pop();
+                    stack.push(obj);
+                    stack.push(obj3);
+                    stack.push(obj2);
+                    stack.push(obj);
+                }
             } break;
             case Opcodes.DUP2: {
                 const obj = stack.pop();
-                const obj2 = stack.pop();
-                stack.push(obj2);
-                stack.push(obj);
-                stack.push(obj2);
-                stack.push(obj);
+                if (isWide(obj)) {
+                    stack.push(obj);
+                    stack.push(obj);
+                } else {
+                    const obj2 = stack.pop();
+                    stack.push(obj2);
+                    stack.push(obj);
+                    stack.push(obj2);
+                    stack.push(obj);
+                }
             } break;
             case Opcodes.DUP2_X1: {
                 const obj = stack.pop();
                 const obj2 = stack.pop();
-                const obj3 = stack.pop();
-                stack.push(obj2);
-                stack.push(obj);
-                stack.push(obj3);
-                stack.push(obj2);
-                stack.push(obj);
+                if (isWide(obj2)) {
+                    stack.push(obj);
+                    stack.push(obj2);
+                    stack.push(obj);
+                } else {
+                    const obj3 = stack.pop();
+                    stack.push(obj2);
+                    stack.push(obj);
+                    stack.push(obj3);
+                    stack.push(obj2);
+                    stack.push(obj);
+                }
             } break;
             case Opcodes.DUP2_X2: {
                 const obj = stack.pop();
                 const obj2 = stack.pop();
-                const obj3 = stack.pop();
-                const obj4 = stack.pop();
-                stack.push(obj2);
-                stack.push(obj);
-                stack.push(obj4);
-                stack.push(obj3);
-                stack.push(obj2);
-                stack.push(obj);
+                if (isWide(obj)) {
+                    if (isWide(obj2)) {
+                        stack.push(obj);
+                        stack.push(obj2);
+                        stack.push(obj);
+                    } else {
+                        const obj3 = stack.pop();
+                        stack.push(obj);
+                        stack.push(obj3);
+                        stack.push(obj2);
+                        stack.push(obj);
+                    }
+                } else {
+                    const obj3 = stack.pop();
+                    if (isWide(obj3)) {
+                        stack.push(obj2);
+                        stack.push(obj);
+                        stack.push(obj3);
+                        stack.push(obj2);
+                        stack.push(obj);
+                    } else {
+                        const obj4 = stack.pop();
+                        stack.push(obj2);
+                        stack.push(obj);
+                        stack.push(obj4);
+                        stack.push(obj3);
+                        stack.push(obj2);
+                        stack.push(obj);
+                    }
+                }
             } break;
 
             case Opcodes.SWAP: {
@@ -388,6 +549,28 @@ class InsnNode extends INode {
                 stack.push(val.xorWithOther(val2));
             } break;
 
+            case Opcodes.I2L: {
+                let value = stack.pop();
+                assertAsmType(1, value, 'I');
+                value = castObjectTo(value, 'J');
+                assertAsmType(2, value, 'J');
+                stack.push(value);
+            } break;
+            case Opcodes.I2F: {
+                let value = stack.pop();
+                assertAsmType(1, value, 'I');
+                value = castObjectTo(value, 'F');
+                assertAsmType(2, value, 'F');
+                stack.push(value);
+            } break;
+            case Opcodes.I2D: {
+                let value = stack.pop();
+                assertAsmType(1, value, 'I');
+                value = castObjectTo(value, 'D');
+                assertAsmType(2, value, 'D');
+                stack.push(value);
+            } break;
+
             case Opcodes.IRETURN: {
                 let val = stack.pop();
                 if (val instanceof JvmByte ||
@@ -423,8 +606,11 @@ class InsnNode extends INode {
                 this.returnObject(stack.pop());
             } break;
             case Opcodes.RETURN: {
-                output[0] = -1; // Jump to `-1` which means normal RETURN without a value.
+                refs.pc = -1; // Jump to `-1` which means normal RETURN without a value.
             } break;
+
+            default:
+                throw new JvmError('Opcode ' + this.opcode + ' (' + OpcodesReverse[this.opcode] + ') not implemented yet.');
         }
     }
 
