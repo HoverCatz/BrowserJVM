@@ -266,9 +266,34 @@ class Opcodes {
     static INSTANCEOF = 193;
     static MONITORENTER = 194;
     static MONITOREXIT = 195;
+    static WIDE = 196;
     static MULTIANEWARRAY = 197;
     static IFNULL = 198;
     static IFNONNULL = 199;
+
+    static GOTO_W = 200;
+    static JSR_W = 201;
+    static WIDE_JUMP_OPCODE_DELTA = Opcodes.GOTO_W - Opcodes.GOTO;
+
+    static ASM_IFEQ = Opcodes.IFEQ+ 49;
+    static ASM_IFNE = Opcodes.IFNE+ 49;
+    static ASM_IFLT = Opcodes.IFLT+ 49;
+    static ASM_IFGE = Opcodes.IFGE+ 49;
+    static ASM_IFGT = Opcodes.IFGT+ 49;
+    static ASM_IFLE = Opcodes.IFLE+ 49;
+    static ASM_IF_ICMPEQ = Opcodes.IF_ICMPEQ+ 49;
+    static ASM_IF_ICMPNE = Opcodes.IF_ICMPNE+ 49;
+    static ASM_IF_ICMPLT = Opcodes.IF_ICMPLT+ 49;
+    static ASM_IF_ICMPGE = Opcodes.IF_ICMPGE+ 49;
+    static ASM_IF_ICMPGT = Opcodes.IF_ICMPGT+ 49;
+    static ASM_IF_ICMPLE = Opcodes.IF_ICMPLE+ 49;
+    static ASM_IF_ACMPEQ = Opcodes.IF_ACMPEQ+ 49;
+    static ASM_IF_ACMPNE = Opcodes.IF_ACMPNE+ 49;
+    static ASM_GOTO = Opcodes.GOTO+ 49;
+    static ASM_JSR = Opcodes.JSR+ 49;
+    static ASM_IFNULL = Opcodes.IFNULL + 20;
+    static ASM_IFNONNULL = Opcodes.IFNONNULL + 20;
+    static ASM_GOTO_W = 220;
 }
 
 const OpcodesReverse = { };
