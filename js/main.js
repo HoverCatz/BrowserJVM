@@ -1,6 +1,36 @@
 // New attempt
 (async () => {
 
+    // readClassFile('out/production/BrowserJVM/asmtesting/v1/TestV1.class').then(clz => {
+    //     console.log('class loaded:', clz)
+    // }).catch(error => {
+    //     console.error(error)
+    // });
+
+    const clazzTestRoot = new JvmClass(Opcodes.ACC_PUBLIC, 'obzcu/re/TestRoot');
+    const testField = new JvmField(clazzTestRoot, Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, 'abc', '[I');
+    const testFunction = new JvmFunction(clazzTestRoot, Opcodes.ACC_PUBLIC, 'test', '(II)F'); {
+        const insns = [];
+        insns.push(new VarInsnNode(Opcodes.ILOAD_1));
+        insns.push(new VarInsnNode(Opcodes.ILOAD_2));
+        insns.push(new InsnNode(Opcodes.IADD));
+        insns.push(new InsnNode(Opcodes.I2F));
+        insns.push(new InsnNode(Opcodes.FRETURN));
+        testFunction.load(insns);
+    }
+    clazzTestRoot.load(
+        {[testField.getFieldPath()]: testFunction},
+        {[testFunction.getFuncPath()]: testFunction}
+    );
+    let clz = clazzTestRoot.newInstance();
+    const func = clz.findFunction('test', '(II)F', false);
+
+    console.log(func.execute([
+        clz,
+        JvmInteger.of(49)
+        , JvmInteger.of(50)
+    ]));
+
     // const clazzTestRoot = new JvmClass(Opcodes.ACC_PUBLIC, 'obzcu/re/TestRoot');
     // const field1 = new JvmField(clazzTestRoot, Opcodes.ACC_PUBLIC, 'abc', 'I');
     // clazzTestRoot.load({[field1.getFieldPath()]: field1}, {});
@@ -15,55 +45,55 @@
     // console.log(clz2_abc.get())
 
     // Test superclass(fields+functions)
-    {
-        const itz1 = new JvmClass(Opcodes.ACC_INTERFACE, 'obzcu/re/TestItz1');
-        addStaticClass(itz1);
-        itz1.load({}, {});
-
-        const itz2 = new JvmClass(Opcodes.ACC_INTERFACE, 'obzcu/re/TestItz2');
-        addStaticClass(itz2);
-        itz2.load({}, {});
-
-        const supr = new JvmClass(Opcodes.ACC_ABSTRACT, 'obzcu/re/TestSuper'); {
-            const field = new JvmField(supr, Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC,
-                'abc', 'Ljava/lang/Object;');
-            supr.load({[field.getFieldPath()]: field}, {});
-        }
-        addStaticClass(supr);
-
-        let clz = new JvmClass(0, 'obzcu/re/TestRoot', supr, [itz1, itz2]);
-        clz.load({}, {});
-        addStaticClass(clz);
-
-        let field = clz.findField('abc', 'Ljava/lang/Object;', true);
-        field.setValue(JvmDouble.of(1.234))
-        // console.log(field.get())
-
-        // console.log(clz, clz.uniqueIdentifier)
-        // console.log(clz.newInstance(), clz.newInstance().uniqueIdentifier)
-        clz = clz.newInstance()
-        field = clz.findField('abc', 'Ljava/lang/Object;', true);
-        field.setValue(JvmInteger.of(123))
-        console.log(field.get())
-
-        const clzSuper = clz.castTo(supr);
-        console.log('clzSuper', clzSuper.findField('abc', 'Ljava/lang/Object;', true))
-
-        const clzItz1 = clz.castTo(itz1);
-        console.log('clzItz1', clzItz1.findField('abc', 'Ljava/lang/Object;', true))
-
-        const clzItz2 = clz.castTo(itz2);
-        console.log('clzItz2', clzItz2.findField('abc', 'Ljava/lang/Object;', true))
-
-        const fromSuperToClz = clzSuper.castTo(clz);
-        console.log('fromSuperToClz', fromSuperToClz.findField('abc', 'Ljava/lang/Object;', true)?.get()?.get())
-
-        const fromItz1ToClz = clzItz1.castTo(clz);
-        console.log('fromItz1ToClz', fromItz1ToClz.findField('abc', 'Ljava/lang/Object;', true)?.get()?.get())
-
-        field.setValue(JvmInteger.of(456))
-        const fromItz2ToClz = clzItz2.castTo(clz);
-        console.log('fromItz2ToClz', fromItz2ToClz.findField('abc', 'Ljava/lang/Object;', true)?.get()?.get())
+    // {
+    //     const itz1 = new JvmClass(Opcodes.ACC_INTERFACE, 'obzcu/re/TestItz1');
+    //     addStaticClass(itz1);
+    //     itz1.load({}, {});
+    //
+    //     const itz2 = new JvmClass(Opcodes.ACC_INTERFACE, 'obzcu/re/TestItz2');
+    //     addStaticClass(itz2);
+    //     itz2.load({}, {});
+    //
+    //     const supr = new JvmClass(Opcodes.ACC_ABSTRACT, 'obzcu/re/TestSuper'); {
+    //         const field = new JvmField(supr, Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC,
+    //             'abc', 'Ljava/lang/Object;');
+    //         supr.load({[field.getFieldPath()]: field}, {});
+    //     }
+    //     addStaticClass(supr);
+    //
+    //     let clz = new JvmClass(0, 'obzcu/re/TestRoot', supr, [itz1, itz2]);
+    //     clz.load({}, {});
+    //     addStaticClass(clz);
+    //
+    //     let field = clz.findField('abc', 'Ljava/lang/Object;', true);
+    //     field.setValue(JvmDouble.of(1.234))
+    //     // console.log(field.get())
+    //
+    //     // console.log(clz, clz.uniqueIdentifier)
+    //     // console.log(clz.newInstance(), clz.newInstance().uniqueIdentifier)
+    //     clz = clz.newInstance()
+    //     field = clz.findField('abc', 'Ljava/lang/Object;', true);
+    //     field.setValue(JvmInteger.of(123))
+    //     console.log(field.get())
+    //
+    //     const clzSuper = clz.castTo(supr);
+    //     console.log('clzSuper', clzSuper.findField('abc', 'Ljava/lang/Object;', true))
+    //
+    //     const clzItz1 = clz.castTo(itz1);
+    //     console.log('clzItz1', clzItz1.findField('abc', 'Ljava/lang/Object;', true))
+    //
+    //     const clzItz2 = clz.castTo(itz2);
+    //     console.log('clzItz2', clzItz2.findField('abc', 'Ljava/lang/Object;', true))
+    //
+    //     const fromSuperToClz = clzSuper.castTo(clz);
+    //     console.log('fromSuperToClz', fromSuperToClz.findField('abc', 'Ljava/lang/Object;', true)?.get()?.get())
+    //
+    //     const fromItz1ToClz = clzItz1.castTo(clz);
+    //     console.log('fromItz1ToClz', fromItz1ToClz.findField('abc', 'Ljava/lang/Object;', true)?.get()?.get())
+    //
+    //     field.setValue(JvmInteger.of(456))
+    //     const fromItz2ToClz = clzItz2.castTo(clz);
+    //     console.log('fromItz2ToClz', fromItz2ToClz.findField('abc', 'Ljava/lang/Object;', true)?.get()?.get())
 
         // console.log('clz :', clz.name, clz.uniqueIdentifier)
         // console.log('clz.isInstanceOf(supr) :', clz.isInstanceOf(supr))
@@ -84,13 +114,7 @@
         //
         // console.log(clz.castTo(itz1))
         // console.log(clz.castTo(itz1).castTo(clz))
-    }
-
-    // readClassFile('out/production/BrowserJVM/asmtesting/TestV1.class').then(clz => {
-    //     console.log('class loaded:', clz)
-    // }).catch(error => {
-    //     console.error(error)
-    // });
+    // }
 
     // const clz = new JvmClass('n/e/k/o', Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, 'TestClass');
     //
