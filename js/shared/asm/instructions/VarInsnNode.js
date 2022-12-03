@@ -13,14 +13,14 @@ class VarInsnNode extends INode {
         if (locals.length < data.size)
             throw new JvmError('Wrong locals size (locals:' + locals.length + ' < data:' + data.size + ')');
 
-        let value = (data.action === 'L') ?
+        let value = (data.load) ?
             locals[data.size - 1] // Load
         :
             stack.pop(); // Store
 
         assertAsmType(1, value, data.type);
 
-        if (data.action === 'L')
+        if (data.load)
             stack.push(value); // Load
         else
             locals[data.size - 1] = value; // Store
@@ -34,7 +34,7 @@ class VarInsnNode extends INode {
         const opcodeRev = OpcodesReverse[opcode];
         return {
             'type': opcodeRev[0], // B, C, S, I, F, L, D
-            'action': opcodeRev[1], // L(oad), S(tore)
+            'load': opcodeRev[1] === 'L', // L(oad), S(tore)
             'size': +opcodeRev[opcodeRev.length - 1] + 1 // _0 = 1, _1 = 2, etc
         };
     }
