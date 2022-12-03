@@ -488,12 +488,14 @@ class AsmFunctionReader {
                 case Opcodes.ASM_JSR:
                 case Opcodes.ASM_IFNULL:
                 case Opcodes.ASM_IFNONNULL:
+                    this.#createLabel(bytecodeOffset + readUnsignedShort(bytes, currentOffset + 1), labels);
                 // createLabel(bytecodeOffset + readUnsignedShort(bytes, currentOffset + 1), labels);
                     currentOffset += 3;
                     break;
                 case Opcodes.GOTO_W:
                 case Opcodes.JSR_W:
                 case Opcodes.ASM_GOTO_W:
+                    this.#createLabel(bytecodeOffset + readInt(bytes, currentOffset + 1), labels);
                 // createLabel(bytecodeOffset + readInt(bytes, currentOffset + 1), labels);
                     currentOffset += 5;
                     break;
@@ -524,12 +526,12 @@ class AsmFunctionReader {
                     currentOffset += 4 - (bytecodeOffset & 3);
                     // Read the default label and the number of table entries.
                 // createLabel(bytecodeOffset + readInt(currentOffset), labels);
-                    this.#createLabel(bytecodeOffset + readInt(currentOffset), labels);
+                    this.#createLabel(bytecodeOffset + readInt(bytes, currentOffset), labels);
                     let numTableEntries = readInt(bytes, currentOffset + 8) - readInt(bytes, currentOffset + 4) + 1;
                     currentOffset += 12;
                     // Read the table labels.
                     while (numTableEntries-- > 0) {
-                        this.#createLabel(bytecodeOffset + readInt(currentOffset), labels);
+                        this.#createLabel(bytecodeOffset + readInt(bytes, currentOffset), labels);
                 // createLabel(bytecodeOffset + readInt(currentOffset), labels);
                         currentOffset += 4;
                     }
@@ -539,12 +541,12 @@ class AsmFunctionReader {
                     currentOffset += 4 - (bytecodeOffset & 3);
                     // Read the default label and the number of switch cases.
                 // createLabel(bytecodeOffset + readInt(currentOffset), labels);
-                    this.#createLabel(bytecodeOffset + readInt(currentOffset), labels);
+                    this.#createLabel(bytecodeOffset + readInt(bytes, currentOffset), labels);
                     let numSwitchCases = readInt(bytes, currentOffset + 4);
                     currentOffset += 8;
                     // Read the switch labels.
                     while (numSwitchCases-- > 0) {
-                        this.#createLabel(bytecodeOffset + readInt(currentOffset + 4), labels);
+                        this.#createLabel(bytecodeOffset + readInt(bytes, currentOffset + 4), labels);
                 // createLabel(bytecodeOffset + readInt(currentOffset + 4), labels);
                         currentOffset += 8;
                     }
@@ -694,6 +696,7 @@ class AsmFunctionReader {
         let currentInvisibleTypeAnnotationBytecodeOffset = this.getTypeAnnotationBytecodeOffset(invisibleTypeAnnotationOffsets, 0);
 
         const instructions = {};
+        const instructionIndexes = [];
 
         let instructionIndex = 0;
         currentOffset = bytecodeStartOffset;
@@ -825,6 +828,7 @@ class AsmFunctionReader {
                 case Opcodes.MONITOREXIT:
                     // methodVisitor.visitInsn(opcode);
                     instructions[currentBytecodeOffset] = new InsnNode(opcode);
+                    instructionIndexes.push(currentBytecodeOffset);
                     currentOffset += 1;
                     break;
                 case Opcodes.ILOAD_0:
@@ -849,6 +853,8 @@ class AsmFunctionReader {
                 case Opcodes.ALOAD_3:
                     opcode -= Opcodes.ILOAD_0;
                     // methodVisitor.visitVarInsn(Opcodes.ILOAD + (opcode >> 2), opcode & 0x3);
+                    instructions[currentBytecodeOffset] = new VarInsnNode(Opcodes.ILOAD + (opcode >> 2), opcode & 0x3);
+                    instructionIndexes.push(currentBytecodeOffset);
                     currentOffset += 1;
                     break;
                 case Opcodes.ISTORE_0:
@@ -873,6 +879,8 @@ class AsmFunctionReader {
                 case Opcodes.ASTORE_3:
                     opcode -= Opcodes.ISTORE_0;
                     // methodVisitor.visitVarInsn(Opcodes.ISTORE + (opcode >> 2), opcode & 0x3);
+                    instructions[currentBytecodeOffset] = new VarInsnNode(Opcodes.ISTORE + (opcode >> 2), opcode & 0x3);
+                    instructionIndexes.push(currentBytecodeOffset);
                     currentOffset += 1;
                     break;
                 case Opcodes.IFEQ:
@@ -894,15 +902,26 @@ class AsmFunctionReader {
                 case Opcodes.IFNULL:
                 case Opcodes.IFNONNULL:
                     // methodVisitor.visitJumpInsn(
-                    //     opcode, labels[currentBytecodeOffset + readShort(currentOffset + 1)]);
+                    //     opcode, labels[currentBytecodeOffset + readShort(bytes, currentOffset + 1)]);
+                    instructions[currentBytecodeOffset] = new JumpInsnNode(
+                        opcode,
+                        labels[currentBytecodeOffset + readShort(bytes, currentOffset + 1)].index
+                    );
+                    instructionIndexes.push(currentBytecodeOffset);
                     currentOffset += 3;
                     break;
                 case Opcodes.GOTO_W:
                 case Opcodes.JSR_W:
-                    // methodVisitor.visitJumpInsn(
-                    //     opcode - wideJumpOpcodeDelta,
-                    //     labels[currentBytecodeOffset + readInt(currentOffset + 1)]);
-                    currentOffset += 5;
+                    throw new Error('Not supported.');
+                    // // methodVisitor.visitJumpInsn(
+                    // //     opcode - wideJumpOpcodeDelta,
+                    // //     labels[currentBytecodeOffset + readInt(bytes, currentOffset + 1)]);
+                    // instructions[currentBytecodeOffset] = new JumpInsnNode(
+                    //     opcode,
+                    //     labels[currentBytecodeOffset + readShort(bytes, currentOffset + 1)].index
+                    // );
+                    // instructionIndexes.push(currentBytecodeOffset);
+                    // currentOffset += 5;
                     break;
                 case Opcodes.ASM_IFEQ:
                 case Opcodes.ASM_IFNE:
@@ -922,54 +941,46 @@ class AsmFunctionReader {
                 case Opcodes.ASM_JSR:
                 case Opcodes.ASM_IFNULL:
                 case Opcodes.ASM_IFNONNULL: {
+                    throw new Error('Not supported yet.');
                     // opcode =
                     //     opcode < Opcodes.ASM_IFNULL
                     //         ? opcode - Opcodes.ASM_OPCODE_DELTA
                     //         : opcode - Opcodes.ASM_IFNULL_OPCODE_DELTA;
                     // Label target = labels[currentBytecodeOffset + readUnsignedShort(currentOffset + 1)];
                     // if (opcode == Opcodes.GOTO || opcode == Opcodes.JSR) {
-                    //     // Replace GOTO with GOTO_W and JSR with JSR_W.
                     //     methodVisitor.visitJumpInsn(opcode + Opcodes.WIDE_JUMP_OPCODE_DELTA, target);
                     // } else {
-                    //     // Compute the "opposite" of opcode. This can be done by flipping the least
-                    //     // significant bit for IFNULL and IFNONNULL, and similarly for IFEQ ... IF_ACMPEQ
-                    //     // (with a pre and post offset by 1).
                     //     opcode = opcode < Opcodes.GOTO ? ((opcode + 1) ^ 1) - 1 : opcode ^ 1;
                     //     Label endif = createLabel(currentBytecodeOffset + 3, labels);
                     //     methodVisitor.visitJumpInsn(opcode, endif);
                     //     methodVisitor.visitJumpInsn(Constants.GOTO_W, target);
-                    //     // endif designates the instruction just after GOTO_W, and is visited as part of the
-                    //     // next instruction. Since it is a jump target, we need to insert a frame here.
                     //     insertFrame = true;
                     // }
-                    currentOffset += 3;
+                    // currentOffset += 3;
                     break;
                 }
                 case Opcodes.ASM_GOTO_W:
-                    // // Replace ASM_GOTO_W with GOTO_W.
-                    // methodVisitor.visitJumpInsn(
-                    //     Opcodes.GOTO_W, labels[currentBytecodeOffset + readInt(currentOffset + 1)]);
-                    // // The instruction just after is a jump target (because ASM_GOTO_W is used in patterns
-                    // // IFNOTxxx <L> ASM_GOTO_W <l> L:..., see MethodWriter), so we need to insert a frame
-                    // // here.
+                    throw new Error('Not supported yet.');
+                    // methodVisitor.visitJumpInsn(Opcodes.GOTO_W, labels[currentBytecodeOffset + readInt(currentOffset + 1)]);
                     // insertFrame = true;
-                    currentOffset += 5;
+                    // currentOffset += 5;
                     break;
                 case Opcodes.WIDE:
                     opcode = bytes[currentOffset + 1] & 0xFF;
                     if (opcode == Opcodes.IINC) {
-                        // methodVisitor.visitIincInsn(
-                        //     readUnsignedShort(currentOffset + 2), readShort(currentOffset + 4));
+                        // methodVisitor.visitIincInsn(readUnsignedShort(bytes, currentOffset + 2), readShort(bytes, currentOffset + 4));
+                        instructions[currentBytecodeOffset] = new IincInsnNode(opcode, readUnsignedShort(bytes, currentOffset + 2), readShort(bytes, currentOffset + 4));
+                        instructionIndexes.push(currentBytecodeOffset);
                         currentOffset += 6;
                     } else {
-                        // methodVisitor.visitVarInsn(opcode, readUnsignedShort(currentOffset + 2));
+                        // methodVisitor.visitVarInsn(opcode, readUnsignedShort(bytes, currentOffset + 2));
+                        instructions[currentBytecodeOffset] = new VarInsnNode(opcode, readUnsignedShort(bytes, currentOffset + 2));
+                        instructionIndexes.push(currentBytecodeOffset);
                         currentOffset += 4;
                     }
                     break;
                 case Opcodes.TABLESWITCH: {
-                    // Skip 0 to 3 padding bytes.
                     currentOffset += 4 - (currentBytecodeOffset & 3);
-                    // Read the instruction.
                     let defaultLabel = labels[currentBytecodeOffset + readInt(bytes, currentOffset)];
                     let low = readInt(bytes, currentOffset + 4);
                     let high = readInt(bytes, currentOffset + 8);
@@ -980,12 +991,11 @@ class AsmFunctionReader {
                         currentOffset += 4;
                     }
                     // methodVisitor.visitTableSwitchInsn(low, high, defaultLabel, table);
+                    throw new Error('Not supported yet.');
                     break;
                 }
                 case Opcodes.LOOKUPSWITCH: {
-                    // // Skip 0 to 3 padding bytes.
-                    // currentOffset += 4 - (currentBytecodeOffset & 3);
-                    // // Read the instruction.
+                    currentOffset += 4 - (currentBytecodeOffset & 3);
                     let defaultLabel = labels[currentBytecodeOffset + readInt(bytes, currentOffset)];
                     let numPairs = readInt(bytes, currentOffset + 4);
                     currentOffset += 8;
@@ -997,6 +1007,7 @@ class AsmFunctionReader {
                         currentOffset += 8;
                     }
                     // methodVisitor.visitLookupSwitchInsn(defaultLabel, keys, values);
+                    throw new Error('Not supported yet.');
                     break;
                 }
                 case Opcodes.ILOAD:
@@ -1011,26 +1022,42 @@ class AsmFunctionReader {
                 case Opcodes.ASTORE:
                 case Opcodes.RET:
                     // methodVisitor.visitVarInsn(opcode, classBuffer[currentOffset + 1] & 0xFF);
+                    instructions[currentBytecodeOffset] = new VarInsnNode(opcode, bytes[currentOffset + 1] & 0xFF);
+                    instructionIndexes.push(currentBytecodeOffset);
                     currentOffset += 2;
                     break;
                 case Opcodes.BIPUSH:
                 case Opcodes.NEWARRAY:
                     // methodVisitor.visitIntInsn(opcode, classBuffer[currentOffset + 1]);
+                    instructions[currentBytecodeOffset] = new IntInsnNode(opcode, bytes[currentOffset + 1]);
+                    instructionIndexes.push(currentBytecodeOffset);
                     currentOffset += 2;
                     break;
                 case Opcodes.SIPUSH:
                     // methodVisitor.visitIntInsn(opcode, readShort(currentOffset + 1));
+                    instructions[currentBytecodeOffset] = new IntInsnNode(opcode, readShort(bytes, currentOffset + 1));
+                    instructionIndexes.push(currentBytecodeOffset);
                     currentOffset += 3;
                     break;
-                case Opcodes.LDC:
+                case Opcodes.LDC: {
                     // methodVisitor.visitLdcInsn(readConst(classBuffer[currentOffset + 1] & 0xFF, charBuffer));
+                    const ldcType = getConstSymbol(this.cpInfoOffsets, bytes[currentOffset + 1] & 0xFF, bytes);
+                    assertLdcType(ldcType);
+                    const ldc = readConst(this.constantUtf8Values, this.cpInfoOffsets, bytes[currentOffset + 1] & 0xFF, bytes);
+                    instructions[currentBytecodeOffset] = new LdcInsnNode(opcode, ldcType, ldc);
+                    instructionIndexes.push(currentBytecodeOffset);
                     currentOffset += 2;
-                    break;
+                } break;
                 case Opcodes.LDC_W:
-                case Opcodes.LDC2_W:
+                case Opcodes.LDC2_W: {
                     // methodVisitor.visitLdcInsn(readConst(readUnsignedShort(currentOffset + 1), charBuffer));
+                    const ldcType = getConstSymbol(this.cpInfoOffsets, readUnsignedShort(bytes, currentOffset + 1), bytes);
+                    assertLdcType(ldcType);
+                    const ldc = readConst(this.constantUtf8Values, this.cpInfoOffsets, readUnsignedShort(bytes, currentOffset + 1), bytes);
+                    instructions[currentBytecodeOffset] = new LdcInsnNode(opcode, ldcType, ldc);
+                    instructionIndexes.push(currentBytecodeOffset);
                     currentOffset += 3;
-                    break;
+                } break;
                 case Opcodes.GETSTATIC:
                 case Opcodes.PUTSTATIC:
                 case Opcodes.GETFIELD:
@@ -1039,18 +1066,19 @@ class AsmFunctionReader {
                 case Opcodes.INVOKESPECIAL:
                 case Opcodes.INVOKESTATIC:
                 case Opcodes.INVOKEINTERFACE: {
-                    // int cpInfoOffset = cpInfoOffsets[readUnsignedShort(currentOffset + 1)];
-                    // int nameAndTypeCpInfoOffset = cpInfoOffsets[readUnsignedShort(cpInfoOffset + 2)];
-                    // String owner = readClass(cpInfoOffset, charBuffer);
-                    // String name = readUTF8(nameAndTypeCpInfoOffset, charBuffer);
-                    // String descriptor = readUTF8(nameAndTypeCpInfoOffset + 2, charBuffer);
-                    // if (opcode < Opcodes.INVOKEVIRTUAL) {
+                    let cpInfoOffset = this.cpInfoOffsets[readUnsignedShort(bytes, currentOffset + 1)];
+                    let nameAndTypeCpInfoOffset = this.cpInfoOffsets[readUnsignedShort(bytes, cpInfoOffset + 2)];
+                    let owner = readClass(this.constantUtf8Values, cpInfoOffset, this.cpInfoOffsets, bytes);
+                    let name = readUTF8(this.constantUtf8Values, nameAndTypeCpInfoOffset, this.cpInfoOffsets, bytes);
+                    let descriptor = readUTF8(this.constantUtf8Values, nameAndTypeCpInfoOffset + 2, this.cpInfoOffsets, bytes);
+
+                    console.log('owner:', owner, 'name:', name, 'desc:', descriptor)
+                    if (opcode < Opcodes.INVOKEVIRTUAL) {
                     //     methodVisitor.visitFieldInsn(opcode, owner, name, descriptor);
-                    // } else {
-                    //     boolean isInterface =
-                    //         classBuffer[cpInfoOffset - 1] == Symbol.CONSTANT_INTERFACE_METHODREF_TAG;
+                    } else {
+                        let isInterface = bytes[cpInfoOffset - 1] === 11; // Symbol.CONSTANT_INTERFACE_METHODREF_TAG
                     //     methodVisitor.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
-                    // }
+                    }
                     if (opcode == Opcodes.INVOKEINTERFACE) {
                         currentOffset += 5;
                     } else {
@@ -1059,24 +1087,21 @@ class AsmFunctionReader {
                     break;
                 }
                 case Opcodes.INVOKEDYNAMIC: {
+                    throw new Error('Not supported right now!'); // There is no indy in java7.
                     // int cpInfoOffset = cpInfoOffsets[readUnsignedShort(currentOffset + 1)];
                     // int nameAndTypeCpInfoOffset = cpInfoOffsets[readUnsignedShort(cpInfoOffset + 2)];
                     // String name = readUTF8(nameAndTypeCpInfoOffset, charBuffer);
                     // String descriptor = readUTF8(nameAndTypeCpInfoOffset + 2, charBuffer);
                     // int bootstrapMethodOffset = bootstrapMethodOffsets[readUnsignedShort(cpInfoOffset)];
-                    // Handle handle =
-                    // (Handle) readConst(readUnsignedShort(bootstrapMethodOffset), charBuffer);
-                    // Object[] bootstrapMethodArguments =
-                    // new Object[readUnsignedShort(bootstrapMethodOffset + 2)];
+                    // Handle handle = (Handle) readConst(readUnsignedShort(bootstrapMethodOffset), charBuffer);
+                    // Object[] bootstrapMethodArguments = new Object[readUnsignedShort(bootstrapMethodOffset + 2)];
                     // bootstrapMethodOffset += 4;
                     // for (int i = 0; i < bootstrapMethodArguments.length; i++) {
-                    //     bootstrapMethodArguments[i] =
-                    //         readConst(readUnsignedShort(bootstrapMethodOffset), charBuffer);
+                    //     bootstrapMethodArguments[i] = readConst(readUnsignedShort(bootstrapMethodOffset), charBuffer);
                     //     bootstrapMethodOffset += 2;
                     // }
-                    // methodVisitor.visitInvokeDynamicInsn(
-                    //     name, descriptor, handle, bootstrapMethodArguments);
-                    currentOffset += 5;
+                    // methodVisitor.visitInvokeDynamicInsn(name, descriptor, handle, bootstrapMethodArguments);
+                    // currentOffset += 5;
                     break;
                 }
                 case Opcodes.NEW:
@@ -1084,11 +1109,15 @@ class AsmFunctionReader {
                 case Opcodes.CHECKCAST:
                 case Opcodes.INSTANCEOF:
                     // methodVisitor.visitTypeInsn(opcode, readClass(currentOffset + 1, charBuffer));
+                    instructions[currentBytecodeOffset] = new TypeInsnNode(opcode, readClass(this.constantUtf8Values, currentOffset + 1, this.cpInfoOffsets, bytes));
+                    instructionIndexes.push(currentBytecodeOffset);
                     currentOffset += 3;
                     break;
                 case Opcodes.IINC:
                     // methodVisitor.visitIincInsn(
-                    //     classBuffer[currentOffset + 1] & 0xFF, classBuffer[currentOffset + 2]);
+                    //     bytes[currentOffset + 1] & 0xFF, bytes[currentOffset + 2]);
+                    instructions[currentBytecodeOffset] = new IincInsnNode(opcode, bytes[currentOffset + 1] & 0xFF, bytes[currentOffset + 2]);
+                    instructionIndexes.push(currentBytecodeOffset);
                     currentOffset += 3;
                     break;
                 case Opcodes.MULTIANEWARRAY:
