@@ -1,3 +1,5 @@
+[![wakatime](https://wakatime.com/badge/user/6e87c2b1-00e5-48ff-98b5-35a00438ef4f/project/bb4b9644-ee11-4c70-b507-1e1376130440.svg)](https://wakatime.com/badge/user/6e87c2b1-00e5-48ff-98b5-35a00438ef4f/project/bb4b9644-ee11-4c70-b507-1e1376130440)
+
 # BrowserJVM
 
 Please don't use this for production.  
