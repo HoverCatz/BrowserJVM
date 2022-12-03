@@ -102,7 +102,7 @@ function readUtf2(utfOffset, utfLength, buffer) {
 }
 
 function getTypeDescriptor(desc) {
-    if (desc.startsWith('['))
+    if (desc.startsWith('[') || desc.startsWith('L') || isPrimitiveType(desc))
         return desc;
     return 'L' + desc + ';';
 }
@@ -137,8 +137,13 @@ function doubleToLongBits(d) {
     return long64[0];
 }
 
+function getConstSymbol(cpInfoOffsets, constantPoolEntryIndex, bytes) {
+    const cpInfoOffset = cpInfoOffsets[constantPoolEntryIndex];
+    return bytes[cpInfoOffset - 1];
+}
+
 function readConst(constantUtf8Values, cpInfoOffsets, constantPoolEntryIndex, bytes) {
-    let cpInfoOffset = cpInfoOffsets[constantPoolEntryIndex];
+    const cpInfoOffset = cpInfoOffsets[constantPoolEntryIndex];
     const symbol = bytes[cpInfoOffset - 1];
     console.log('symbol:', symbol)
     switch (symbol) {
@@ -149,7 +154,7 @@ function readConst(constantUtf8Values, cpInfoOffsets, constantPoolEntryIndex, by
         /* long */ case 5: return readLong(bytes, cpInfoOffset);
         /* double */ case 6: return longBitsToDouble(readLong(bytes, cpInfoOffset));
 
-        /* class */ case 7: return getTypeDescriptor(readUTF8(constantUtf8Values, cpInfoOffset, cpInfoOffsets, bytes));
+        /* type */ case 7: return getTypeDescriptor(readUTF8(constantUtf8Values, cpInfoOffset, cpInfoOffsets, bytes));
 
         /* string */ case 8: return readUTF8(constantUtf8Values, cpInfoOffset, cpInfoOffsets, bytes);
 
