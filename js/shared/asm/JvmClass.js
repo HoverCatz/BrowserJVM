@@ -294,8 +294,9 @@ class JvmClass {
         const obj = this.isInstanceOf(other, true);
         if (!obj) {
             console.log(obj)
-            throw new Error('This class `' + this.getPath() +
-                '` is not an instance of other class `' + (other instanceof JvmClass ? other.getPath() : other) + '`.');
+            throw new JvmError('This class `' + this.getPath() +
+                '` is not an instance of other class `' + (other instanceof JvmClass ? other.getPath() : other) + '`.',
+                'ClassCastException');
         }
         return obj;
     }
