@@ -50,7 +50,7 @@ class JvmField {
             console.log('constantValue:`',constantValue,'`')
             if (constantValue == null) {
                 this.setValue(null);
-            } else if (isPrimitiveDesc(fieldDesc)) {
+            } else if (isPrimitiveType(fieldDesc)) {
                 const num = newJvmNumber(constantValue, getNumberType(fieldDesc));
                 this.setValue(num);
             } else if (typeof constantValue === 'string') {
@@ -200,7 +200,7 @@ class JvmField {
      */
     getFieldPath(asmSymbols = false) {
         let desc = this.fieldDesc;
-        if (asmSymbols && isPrimitiveDesc(desc))
+        if (asmSymbols && isPrimitiveType(desc))
             desc = 'L' + desc + ';';
         return this.fieldName + '.' + desc;
     }
