@@ -7,13 +7,13 @@
     //     console.error(error)
     // });
 
-    const c = JvmChar.of('a');
-    c.set(JvmChar.MAX_VALUE)
-    console.log(c.get()) // 65535
-    c.set(JvmChar.MAX_VALUE + 1)
-    console.log(c.get()) // 0
-    c.set(-1)
-    console.log(c.get()) // 65535
+    // const c = JvmChar.of('a');
+    // c.set(JvmChar.MAX_VALUE)
+    // console.log(c.get()) // 65535
+    // c.set(JvmChar.MAX_VALUE + 1)
+    // console.log(c.get()) // 0
+    // c.set(-1)
+    // console.log(c.get()) // 65535
 
     // const abc = JvmInteger.of(123);
     // const def = JvmInteger.of(456);
@@ -25,31 +25,31 @@
     // console.log(arr.getItem(0))
     // console.log(abc, def)
 
-    // const clazzTestRoot = new JvmClass(Opcodes.ACC_PUBLIC, 'obzcu/re/TestRoot');
-    // const testField = new JvmField(clazzTestRoot, Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, 'abc', 'I');
-    // const testFunction = new JvmFunction(clazzTestRoot, Opcodes.ACC_PUBLIC, 'test', '(II)F'); {
-    //     const insns = [];
-    //     insns.push(new VarInsnNode(Opcodes.ILOAD, 1));
-    //     insns.push(new InsnNode(Opcodes.I2F));
-    //     insns.push(new VarInsnNode(Opcodes.ILOAD, 2));
-    //     insns.push(new InsnNode(Opcodes.I2F));
-    //     insns.push(new InsnNode(Opcodes.FMUL));
-    //     insns.push(new InsnNode(Opcodes.FNEG));
-    //     insns.push(new InsnNode(Opcodes.FRETURN));
-    //     testFunction.load(insns);
-    // }
-    // clazzTestRoot.load(
-    //     {[testField.getFieldPath()]: testField},
-    //     {[testFunction.getFuncPath()]: testFunction}
-    // );
-    // let clz = clazzTestRoot.newInstance();
-    // const func = clz.findFunction('test', '(II)F', false);
-    //
-    // console.log(func.execute([
-    //     clz,
-    //     JvmInteger.of(69)
-    //     , JvmInteger.of(2)
-    // ]));
+    const clazzTestRoot = new JvmClass(Opcodes.ACC_PUBLIC, 'obzcu/re/TestRoot');
+    const testField = new JvmField(clazzTestRoot, Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, 'abc', 'I');
+    const testFunction = new JvmFunction(clazzTestRoot, Opcodes.ACC_PUBLIC, 'test', '(II)F'); {
+        const insns = [];
+        insns.push(new VarInsnNode(Opcodes.ILOAD, 1));
+        insns.push(new InsnNode(Opcodes.I2F));
+        insns.push(new VarInsnNode(Opcodes.ILOAD, 2));
+        insns.push(new InsnNode(Opcodes.I2F));
+        insns.push(new InsnNode(Opcodes.FMUL));
+        insns.push(new InsnNode(Opcodes.FNEG));
+        insns.push(new InsnNode(Opcodes.FRETURN));
+        testFunction.load(insns);
+    }
+    clazzTestRoot.load(
+        {[testField.getFieldPath()]: testField},
+        {[testFunction.getFuncPath()]: testFunction}
+    );
+    let clz = clazzTestRoot.newInstance();
+    const func = clz.findFunction('test', '(II)F', false);
+
+    console.log(func.execute([
+        clz,
+        JvmInteger.of(69)
+        , JvmInteger.of(2)
+    ]));
 
     // const clazzTestRoot = new JvmClass(Opcodes.ACC_PUBLIC, 'obzcu/re/TestRoot');
     // const field1 = new JvmField(clazzTestRoot, Opcodes.ACC_PUBLIC, 'abc', 'I');
