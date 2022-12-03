@@ -226,6 +226,137 @@ function addToList(list, name_desc, value) {
     list[name_desc] = value;
 }
 
+function isJvmType(object, type) {
+    // Check for numbers
+    if (type === 'JvmNumber')                  return object instanceof JvmNumber;
+    if (type === 'JvmByte' || type === 'B')    return object instanceof JvmByte;
+    if (type === 'JvmChar' || type === 'C')    return object instanceof JvmChar;
+    if (type === 'JvmShort' || type === 'S')   return object instanceof JvmShort;
+    if (type === 'JvmInteger' || type === 'I') return object instanceof JvmInteger;
+    if (type === 'JvmFloat' || type === 'F')   return object instanceof JvmFloat;
+    if (type === 'JvmLong' || type === 'J')    return object instanceof JvmLong;
+    if (type === 'JvmDouble' || type === 'D')  return object instanceof JvmDouble;
+    // Check for object types
+    if (type === 'JvmClass')                   return object instanceof JvmClass;
+    if (type === 'JvmObject' || type === 'A')  return object instanceof JvmObject;
+    if (type === 'JvmString')                  return object instanceof JvmString;
+    if (type === 'JvmArray')                   return object instanceof JvmArray;
+    // Check for specific JvmArray inner-type
+    if (type.startsWith('JvmArray<') && type.endsWith('>') && object instanceof JvmArray) {
+        const innerType = getJvmArrayInnerType(type);
+        if (innerType === object.asmType)
+            return true;
+        if (innerType === 'JvmNumber' && !!isJvmNumber(object.asmType))
+            return true;
+        return false;
+    }
+    // Check for errors
+    if (type === 'JvmError')                   return object instanceof JvmError;
+    // Otherwise false
+    return false;
+}
+
+function getJvmTypeString(object, short = false) {
+    // Check for numbers
+    if (object instanceof JvmByte) return !short ? 'JvmByte' : 'B';
+    if (object instanceof JvmChar) return !short ? 'JvmChar' : 'C';
+    if (object instanceof JvmShort) return !short ? 'JvmShort' : 'S';
+    if (object instanceof JvmInteger) return !short ? 'JvmInteger' : 'I';
+    if (object instanceof JvmFloat) return !short ? 'JvmFloat' : 'F';
+    if (object instanceof JvmLong) return !short ? 'JvmLong' : 'J';
+    if (object instanceof JvmDouble) return !short ? 'JvmDouble' : 'D';
+    if (object instanceof JvmNumber) return 'JvmNumber';
+    // Check for object types
+    if (object instanceof JvmClass) return 'JvmClass';
+    if (object instanceof JvmString) return 'JvmString';
+    if (object instanceof JvmArray) return `JvmArray<${object.asmType}>`;
+    if (object instanceof JvmObject) return !short ? 'JvmObject' : 'A';
+    // Check for errors
+    if (object instanceof JvmError) return 'JvmError';
+    // Check native js elements
+    const type = typeof object;
+    if (type === 'string') return 'string'; else
+    if (type === 'number') return 'number'; else
+    if (type === 'boolean') return 'boolean'; else
+    if (type === 'function') return 'function'; else
+    if (type === 'undefined') return 'undefined'; else
+    if (type === 'bigint') return 'bigint'; else
+    if (type === 'symbol') return 'symbol'; else
+    // Probably 'object' at this point
+    if (type === 'object') return 'object';
+    console.log(`Invalid type: '${type}'`)
+    return false;
+}
+
+function isJvmNumber(name) {
+    switch (name) {
+        case 'JvmNumber':
+        case 'JvmByte':
+        case 'JvmChar':
+        case 'JvmShort':
+        case 'JvmInteger':
+        case 'JvmFloat':
+        case 'JvmLong':
+        case 'JvmDouble':
+            return true;
+    }
+    return false;
+}
+
+function isJvmObject(name) {
+    switch (name) {
+        case 'JvmString':
+        case 'JvmArray':
+        case 'JvmObject':
+            return true;
+    }
+    if (name.startsWith('JvmArray<') && name.endsWith('>'))
+        return true;
+    return false;
+}
+
+function getJvmArrayInnerType(name) {
+    return name.substring(name.indexOf('<') + 1, name.lastIndexOf('>'));
+}
+
+function assertJvmType(name, object, type) {
+    if (!isJvmType(object, type)) {
+        throw new JvmError(`val${name} wasn't of type '${type}', it was '${getJvmTypeString(object)}' instead.`);
+    }
+}
+
+function asmTypeToJvmType(asmType) {
+    let arrayCount = 0;
+    while (asmType.startsWith('[')) {
+        asmType = asmType.substring(1);
+        arrayCount++;
+    }
+    const prefix = '['.repeat(arrayCount);
+    switch (asmType) {
+        case 'B': return prefix + 'JvmByte';
+        case 'C': return prefix + 'JvmChar';
+        case 'S': return prefix + 'JvmShort';
+        case 'I': return prefix + 'JvmInteger';
+        case 'F': return prefix + 'JvmFloat';
+        case 'J': return prefix + 'JvmLong';
+        case 'D': return prefix + 'JvmDouble';
+    }
+    switch (stripAsmDesc(asmType)) {
+        case 'java/lang/Byte':      return prefix + 'JvmByte';
+        case 'java/lang/Character': return prefix + 'JvmChar';
+        case 'java/lang/Short':     return prefix + 'JvmShort';
+        case 'java/lang/Integer':   return prefix + 'JvmInteger';
+        case 'java/lang/Float':     return prefix + 'JvmFloat';
+        case 'java/lang/Long':      return prefix + 'JvmLong';
+        case 'java/lang/Double':    return prefix + 'JvmDouble';
+
+        case 'java/lang/CharSequence':
+        case 'java/lang/String':    return prefix + 'JvmString';
+        case 'java/lang/Object':    return prefix + 'JvmObject';
+    }
+    return false;
+}
+
 /*
  * Compare the type of the object {value} to the asm type {asmType}.
  * Example values:
@@ -237,32 +368,56 @@ function addToList(list, name_desc, value) {
  *   c. asmType: I
  */
 function compareTypes(value, asmType) {
-    if (value == null) {
-        switch (asmType) {
-            case 'B': // byte
-            case 'C': // char
-            case 'S': // short
-            case 'I': // int
-            case 'F': // float
-            case 'D': // double
-            case 'J': // long
-            case 'Z': // boolean
-                // If our asm-type is primitive, it can't be null.
-                // Anything else CAN be null tho.
-                return false;
-        }
+    // Check jvm types
+    const jvmType = asmTypeToJvmType(asmType);
+    if (!!jvmType && isJvmType(value, jvmType))
         return true;
-    }
-    const type = typeof value;
-    if (type === 'string' && (asmType === 'java/lang/String' || asmType === 'java/lang/CharSequence')) return true;
-    if ((type === 'bool' || type === 'boolean') && (asmType === 'Z' || asmType === 'java/lang/Boolean')) return true;
-    if (getTypeString(value) === asmType)
-        return true;
-    if (value instanceof JvmNumber && value.constructor.name === asmType)
-        return true;
-    if (value instanceof JvmClass)
-        return value.isInstanceOf(asmType) || value.constructor.name === asmType;
+
+    // Primitive values can't be null
+    if (value == null && isPrimitiveType(asmType))
+        return false;
+
     return false;
+    // if (value == null) {
+    //     switch (asmType) {
+    //         case 'B': // byte
+    //         case 'C': // char
+    //         case 'S': // short
+    //         case 'I': // int
+    //         case 'F': // float
+    //         case 'D': // double
+    //         case 'J': // long
+    //         case 'Z': // boolean
+    //             // If our asm-type is primitive, it can't be null.
+    //             // Anything else CAN be null tho.
+    //             return false;
+    //     }
+    //     return true;
+    // }
+    // const type = typeof value;
+    // if (type === 'string' && (asmType === 'java/lang/String' || asmType === 'java/lang/CharSequence')) return true;
+    // if ((type === 'bool' || type === 'boolean') && (asmType === 'Z' || asmType === 'java/lang/Boolean')) return true;
+    // if (getTypeString(value) === asmType)
+    //     return true;
+    // if (value instanceof JvmNumber && value.constructor.name === asmType)
+    //     return true;
+    // if (value instanceof JvmClass)
+    //     return value.isInstanceOf(asmType) || value.constructor.name === asmType;
+    // if (value instanceof JvmError && asmType === 'JvmError')
+    //     return true;
+    // return false;
+}
+
+function assertLdcType(ldcType) {
+    switch (ldcType) {
+/* int    */ case 3:
+/* float  */ case 4:
+/* long   */ case 5:
+/* double */ case 6:
+/* type   */ case 7:
+/* string */ case 8: return;
+    }
+    throw new Error('IllegalStateException');
 }
 
 function assertAsmType(name, obj, asmType) {
@@ -324,7 +479,7 @@ function getArgumentTypes(desc) {
     return types;
 }
 
-function isPrimitiveDesc(desc) {
+function isPrimitiveType(desc) {
     switch (desc) {
         case 'B':
         case 'C':
@@ -338,6 +493,10 @@ function isPrimitiveDesc(desc) {
             return true;
     }
     return false;
+}
+
+function isInstance(first, second) {
+
 }
 
 /**
