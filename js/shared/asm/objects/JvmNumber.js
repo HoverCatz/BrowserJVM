@@ -66,9 +66,11 @@ class JvmNumber {
     /**
      * Set number value
      * @param value {number|BigInt}
+     * @returns {this}
      */
     set(value) {
         this.value = value;
+        return this;
     }
 
     /**
@@ -166,7 +168,7 @@ class JvmByte extends JvmNumber {
     set(value) {
         if (typeof value === 'bigint')
             value = BigInt.asIntN(6, value);
-        super.set(JvmByte.#clamp(value));
+        return super.set(JvmByte.#clamp(value));
     }
 
     /** @returns {number} */
@@ -200,8 +202,12 @@ class JvmByte extends JvmNumber {
 // 16-bit
 class JvmChar extends JvmNumber {
 
-    /** @param value {number|BigInt} */
+    /** @param value {string|number|BigInt} */
     constructor(value) {
+        if (typeof value === 'string') {
+            if (value.length !== 1) throw new Error('Wrong length of character string. Expecting 1 but got ' + value.length + '.');
+            value = value.charCodeAt(0);
+        }
         super(JvmChar.#clamp(value), JvmNumberType.Char, JvmNumberAsmSymbols.Char);
     }
 
@@ -221,7 +227,7 @@ class JvmChar extends JvmNumber {
     set(value) {
         if (typeof value === 'bigint')
             value = BigInt.asIntN(16, value);
-        super.set(JvmChar.#clamp(value));
+        return super.set(JvmChar.#clamp(value));
     }
 
     /** @returns {number} */
@@ -276,7 +282,7 @@ class JvmShort extends JvmNumber {
     set(value) {
         if (typeof value === 'bigint')
             value = BigInt.asIntN(16, value);
-        super.set(JvmShort.#clamp(value));
+        return super.set(JvmShort.#clamp(value));
     }
 
     /** @returns {number} */
@@ -351,7 +357,7 @@ class JvmInteger extends JvmNumber {
     set(value) {
         if (typeof value === 'bigint')
             value = BigInt.asIntN(32, value);
-        super.set(JvmInteger.#clamp(value));
+        return super.set(JvmInteger.#clamp(value));
     }
 
     /** @returns {number} */
@@ -408,7 +414,7 @@ class JvmFloat extends JvmNumber {
     set(toAdd) {
         if (typeof toAdd === 'bigint')
             toAdd = Number(BigInt.asIntN(32, toAdd));
-        super.set(Math.fround(toAdd));
+        return super.set(Math.fround(toAdd));
     }
 
     /** @returns {number} */
@@ -473,7 +479,7 @@ class JvmLong extends JvmNumber {
     set(value) {
         if (typeof value === 'number')
             value = BigInt(value);
-        this.value = JvmLong.#clamp(value);
+        return super.set(JvmLong.#clamp(value));
     }
 
     /** @type {BigInt} */
@@ -510,6 +516,7 @@ class JvmLong extends JvmNumber {
 }
 
 // 64-bit
+// TODO: I think this whole class needs to be looked at.
 class JvmDouble extends JvmNumber {
 
     /** @param value {number|BigInt} */
