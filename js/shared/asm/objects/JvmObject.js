@@ -2,14 +2,14 @@
 class JvmObject {
 
     /**
-     * @type {JvmString|JvmNumber|any|null}
+     * @type {any|null|undefined}
      */
     value;
 
     /**
-     * @param value {JvmString|JvmNumber|null}
+     * @param value {any|null|undefined}
      */
-    constructor(value) {
+    constructor(value = undefined) {
         this.value = value;
     }
 
