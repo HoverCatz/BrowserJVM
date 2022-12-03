@@ -1,6 +1,6 @@
 class VarInsnNode extends INode {
 
-    constructor(opcode, input = []) {
+    constructor(opcode, ...input) {
         super(opcode, input);
     }
 
@@ -27,15 +27,15 @@ class VarInsnNode extends INode {
     }
 
     #getData() {
-        const opcode = this.opcode;
+        const opcode = Opcodes.ILOAD_0 + this.nextInt();
         if (!((opcode >= Opcodes.ILOAD_0 && opcode <= Opcodes.FLOAD_3) ||
               (opcode >= Opcodes.ISTORE_0 && opcode <= Opcodes.ASTORE_3)))
             throw new Error('Opcode outside scope.');
         const opcodeRev = OpcodesReverse[opcode];
         return {
-            'type': opcodeRev[0],
-            'action': opcodeRev[1],
-            'size': +opcodeRev[opcodeRev.length - 1] + 1
+            'type': opcodeRev[0], // B, C, S, I, F, L, D
+            'action': opcodeRev[1], // L(oad), S(tore)
+            'size': +opcodeRev[opcodeRev.length - 1] + 1 // _0 = 1, _1 = 2, etc
         };
     }
 

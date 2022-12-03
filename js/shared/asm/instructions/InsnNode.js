@@ -1,7 +1,7 @@
 class InsnNode extends INode {
 
-    constructor(opcode, input = []) {
-        super(opcode, input);
+    constructor(opcode) {
+        super(opcode, []);
     }
 
     execute(locals, stack, refs) {
@@ -389,6 +389,7 @@ class InsnNode extends INode {
                 const val2 = stack.pop();
                 assertAsmType(2, val2, 'J');
                 if (val2.get() === 0n)
+                    // TODO: Actually create a new instance of this error
                     throw new JvmError('/ by zero', 'java/lang/ArithmeticException');
                 const val = stack.pop();
                 assertAsmType(1, val, 'J');
@@ -412,6 +413,9 @@ class InsnNode extends INode {
             case Opcodes.IREM: {
                 const val2 = stack.pop();
                 assertAsmType(2, val2, 'I');
+                if (val2.get() === 0)
+                    // TODO: Actually create a new instance of this error
+                    throw new JvmError('/ by zero', 'java/lang/ArithmeticException');
                 const val = stack.pop();
                 assertAsmType(1, val, 'I');
                 stack.push(val.remWithOther(val2));
@@ -419,6 +423,9 @@ class InsnNode extends INode {
             case Opcodes.LREM: {
                 const val2 = stack.pop();
                 assertAsmType(2, val2, 'J');
+                if (val2.get() === 0)
+                    // TODO: Actually create a new instance of this error
+                    throw new JvmError('/ by zero', 'java/lang/ArithmeticException');
                 const val = stack.pop();
                 assertAsmType(1, val, 'J');
                 stack.push(val.remWithOther(val2));
@@ -578,7 +585,8 @@ class InsnNode extends INode {
                     val instanceof JvmShort ||
                     val instanceof JvmInteger ||
                     val instanceof Boolean ||
-                    compareTypes(val, 'Z')) {
+                    compareTypes(val, 'Z') ||
+                    compareTypes(val, 'I')) {
                     this.returnObject(val);
                 } else {
                     throw new Error(`Wrong IRETURN type: ${getTypeString(val)}, asmType 'B', 'C', 'S', 'I', or 'Z', required.`);
@@ -607,6 +615,26 @@ class InsnNode extends INode {
             } break;
             case Opcodes.RETURN: {
                 refs.pc = -1; // Jump to `-1` which means normal RETURN without a value.
+            } break;
+
+            case Opcodes.ARRAYLENGTH: {
+                const array = stack.pop();
+                assertAsmType(1, array, 'JvmArray');
+                stack.push(array.size());
+            } break;
+
+            case Opcodes.ATHROW: {
+                const ex = stack.pop();
+                assertAsmType(1, ex, 'JvmError');
+                throw ex;
+            } break;
+
+            // TODO: Implement enter+exit
+            case Opcodes.MONITORENTER: {
+                throw new Error('Not implemented yet.');
+            } break;
+            case Opcodes.MONITOREXIT: {
+                throw new Error('Not implemented yet.');
             } break;
 
             default:
