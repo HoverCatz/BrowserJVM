@@ -9,8 +9,8 @@
     const clazzTestRoot = new JvmClass(Opcodes.ACC_PUBLIC, 'obzcu/re/TestRoot');
     addStaticClass(clazzTestRoot);
 
-    let testField = new JvmField(clazzTestRoot, Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, 'abc', 'I');
-    testField.asmLoad(testField.accessFlags, 'abc', 'I', null, 69);
+    let testField = new JvmField(clazzTestRoot);
+    testField.asmLoad(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, 'abc', 'J', null, 69n);
 
     const testFunction = new JvmFunction(clazzTestRoot, Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, 'test', '(Lobzcu/re/TestRoot;)I'); {
         const insns = [];
@@ -22,7 +22,8 @@
 
     const testFunction2 = new JvmFunction(clazzTestRoot, Opcodes.ACC_PUBLIC, 'test2', '()I'); {
         const insns = [];
-        insns.push(new FieldInsnNode(Opcodes.GETSTATIC, clazzTestRoot.name, 'abc', 'I'));
+        insns.push(new FieldInsnNode(Opcodes.GETSTATIC, clazzTestRoot.name, 'abc', 'J'));
+        insns.push(new InsnNode(Opcodes.L2I));
         insns.push(new InsnNode(Opcodes.IRETURN));
         testFunction2.load(insns);
     }
