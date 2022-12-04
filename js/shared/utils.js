@@ -523,6 +523,34 @@ function isPrimitiveInstance(primObject, ofClass) {
 
 }
 
+function compareNumbers(x, y) {
+    return (x < y) ? -1 : ((x === y) ? 0 : 1);
+}
+
+function compareFloats(f1, f2) {
+    if (f1 < f2)
+        return -1;
+    if (f1 > f2)
+        return 1;
+    const thisBits = floatToIntBits(f1);
+    const anotherBits = floatToIntBits(f2);
+    return (thisBits === anotherBits ? 0 :
+            (thisBits < anotherBits ? -1 :
+             1));
+}
+
+function compareDoubles(d1, d2) {
+    if (d1 < d2)
+        return -1;
+    if (d1 > d2)
+        return 1;
+    const thisBits = doubleToLongBits(d1);
+    const anotherBits = doubleToLongBits(d2);
+    return (thisBits === anotherBits ? 0 :
+            (thisBits < anotherBits ? -1 :
+             1));
+}
+
 /**
  *
  * @param asmType
