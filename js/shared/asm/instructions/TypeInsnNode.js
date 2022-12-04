@@ -11,7 +11,10 @@ class TypeInsnNode extends INode {
         const type = this.nextString();
         switch (this.opcode) {
             case Opcodes.NEW: {
-                stack.push(findStaticClass(type));
+                let clz = findStaticClass(type);
+                if (!clz)
+                    throw new Error(`Class ${type} not found.`);
+                stack.push(clz);
             } break;
             case Opcodes.ANEWARRAY: {
                 const count = stack.pop();
