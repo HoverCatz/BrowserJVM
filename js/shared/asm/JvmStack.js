@@ -39,14 +39,14 @@ class JvmStack {
     }
 
     popIndex(index) {
-        return this.get(index, true);
+        return this.#get(index, true);
     }
 
     getIndex(index) {
-        return this.get(index, false);
+        return this.#get(index, false);
     }
 
-    get(index, pop) {
+    #get(index, pop) {
         if (index < 0)
             throw new Error('OutOfBoundsCustomStackException');
         if (this.empty)
@@ -69,6 +69,10 @@ class JvmStack {
             return object;
         }
         return this.popNode(current.next);
+    }
+
+    replace(item) {
+        this.node.object = item;
     }
 
     getSize() {
