@@ -16,7 +16,7 @@ class TypeInsnNode extends INode {
             case Opcodes.ANEWARRAY: {
                 const count = stack.pop();
                 assertAsmType(1, count, 'I');
-                stack.push(new JvmArray([...Array(count)].fill(null), findStaticClass(type)));
+                stack.push(new JvmArray([], findStaticClass(type), count));
             } break;
             case Opcodes.CHECKCAST: {
                 let obj = stack.pop();
@@ -33,7 +33,7 @@ class TypeInsnNode extends INode {
                 else {
                     const T = findStaticClass(type);
                     if (isPrimitiveType(type)) {
-                        stack.push(isInstance(T, S));
+                        stack.push(isPrimitiveInstance(T, S)); // TODO: Fix this
                     } else {
                         stack.push(T.isInstanceOf(S));
                     }
