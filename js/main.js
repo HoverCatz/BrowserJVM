@@ -6,6 +6,36 @@
     // }).catch(error => {
     //     console.error(error)
     // });
+    const clazzTestRoot = new JvmClass(Opcodes.ACC_PUBLIC, 'obzcu/re/TestRoot');
+    addStaticClass(clazzTestRoot);
+
+    let testField = new JvmField(clazzTestRoot, Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, 'abc', 'I');
+    testField.asmLoad(testField.accessFlags, 'abc', 'I', null, 69);
+
+    const testFunction = new JvmFunction(clazzTestRoot, Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, 'test', '(Lobzcu/re/TestRoot;)I'); {
+        const insns = [];
+        insns.push(new VarInsnNode(Opcodes.ALOAD, 0));
+        insns.push(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, clazzTestRoot.name, 'test2', '()I', [], 'I', false));
+        insns.push(new InsnNode(Opcodes.IRETURN));
+        testFunction.load(insns);
+    }
+
+    const testFunction2 = new JvmFunction(clazzTestRoot, Opcodes.ACC_PUBLIC, 'test2', '()I'); {
+        const insns = [];
+        insns.push(new FieldInsnNode(Opcodes.GETSTATIC, clazzTestRoot.name, 'abc', 'I'));
+        insns.push(new InsnNode(Opcodes.IRETURN));
+        testFunction2.load(insns);
+    }
+
+    clazzTestRoot.load(
+        {[testField.getFieldPath()]: testField},
+        {[testFunction.getFuncPath()]: testFunction, [testFunction2.getFuncPath()]: testFunction2}
+    );
+
+    let clz = clazzTestRoot.newInstance();
+
+    const func = clz.findFunction('test', '(Lobzcu/re/TestRoot;)I', true);
+    console.log(func.execute([clz]));
 
     // const c = JvmChar.of('a');
     // c.set(JvmChar.MAX_VALUE)
@@ -25,31 +55,38 @@
     // console.log(arr.getItem(0))
     // console.log(abc, def)
 
-    const clazzTestRoot = new JvmClass(Opcodes.ACC_PUBLIC, 'obzcu/re/TestRoot');
-    const testField = new JvmField(clazzTestRoot, Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, 'abc', 'I');
-    const testFunction = new JvmFunction(clazzTestRoot, Opcodes.ACC_PUBLIC, 'test', '(II)F'); {
-        const insns = [];
-        insns.push(new VarInsnNode(Opcodes.ILOAD, 1));
-        insns.push(new InsnNode(Opcodes.I2F));
-        insns.push(new VarInsnNode(Opcodes.ILOAD, 2));
-        insns.push(new InsnNode(Opcodes.I2F));
-        insns.push(new InsnNode(Opcodes.FMUL));
-        insns.push(new InsnNode(Opcodes.FNEG));
-        insns.push(new InsnNode(Opcodes.FRETURN));
-        testFunction.load(insns);
-    }
-    clazzTestRoot.load(
-        {[testField.getFieldPath()]: testField},
-        {[testFunction.getFuncPath()]: testFunction}
-    );
-    let clz = clazzTestRoot.newInstance();
-    const func = clz.findFunction('test', '(II)F', false);
-
-    console.log(func.execute([
-        clz,
-        JvmInteger.of(69)
-        , JvmInteger.of(2)
-    ]));
+    // const arrTest = (true ? ['abc'] : []).concat([1, 2, 3]);
+    // console.log(arrTest.concat([1, 2, 3]))
+    //
+    // const test = new JvmArray([], 'JvmBoolean', 1);
+    // test.setItem(0, JvmBoolean.of(0))
+    // console.log(test.getItem(0))
+    //
+    // const clazzTestRoot = new JvmClass(Opcodes.ACC_PUBLIC, 'obzcu/re/TestRoot');
+    // const testField = new JvmField(clazzTestRoot, Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, 'abc', 'I');
+    // const testFunction = new JvmFunction(clazzTestRoot, Opcodes.ACC_PUBLIC, 'test', '(II)F'); {
+    //     const insns = [];
+    //     insns.push(new VarInsnNode(Opcodes.ILOAD, 1));
+    //     insns.push(new InsnNode(Opcodes.I2F));
+    //     insns.push(new VarInsnNode(Opcodes.ILOAD, 2));
+    //     insns.push(new InsnNode(Opcodes.I2F));
+    //     insns.push(new InsnNode(Opcodes.FMUL));
+    //     insns.push(new InsnNode(Opcodes.FNEG));
+    //     insns.push(new InsnNode(Opcodes.FRETURN));
+    //     testFunction.load(insns);
+    // }
+    // clazzTestRoot.load(
+    //     {[testField.getFieldPath()]: testField},
+    //     {[testFunction.getFuncPath()]: testFunction}
+    // );
+    // let clz = clazzTestRoot.newInstance();
+    // const func = clz.findFunction('test', '(II)F', false);
+    //
+    // console.log(func.execute([
+    //     clz,
+    //     JvmInteger.of(69)
+    //     , JvmInteger.of(2)
+    // ]));
 
     // const clazzTestRoot = new JvmClass(Opcodes.ACC_PUBLIC, 'obzcu/re/TestRoot');
     // const field1 = new JvmField(clazzTestRoot, Opcodes.ACC_PUBLIC, 'abc', 'I');
