@@ -21,7 +21,8 @@ class JvmArray extends JvmObject {
             values = [...Array(length)].fill(null);
         for (const index in values) {
             const object = values[index];
-            assertJvmType(index, object, asmType);
+            if (object !== null)
+                assertJvmType(index, object, asmType);
         }
         super(values);
         this.length = values.length;
