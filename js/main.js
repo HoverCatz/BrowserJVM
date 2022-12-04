@@ -3,40 +3,96 @@
 
     // readClassFile('out/production/BrowserJVM/asmtesting/v1/TestV1.class').then(clz => {
     //     console.log('class loaded:', clz)
+    //     if (!clz) return;
+    //     readClassFile('out/production/BrowserJVM/asmtesting/v1/TestV1Super.class').then(clz2 => {
+    //         console.log('class2 loaded:', clz2)
+    //         readClassFile('out/production/BrowserJVM/asmtesting/v1/TestV1Itz1.class').then(clz3 => {
+    //             console.log('class3 loaded:', clz3)
+    //             readClassFile('out/production/BrowserJVM/asmtesting/v1/TestV1Itz2.class').then(clz4 => {
+    //                 console.log('class4 loaded:', clz4)
+    //                 addStaticClass(clz)
+    //                 addStaticClass(clz2)
+    //                 addStaticClass(clz3)
+    //                 addStaticClass(clz4)
+    //                 clz = clz.newInstance()
+    //                 console.log('class instance:', clz)
+    //             }).catch(error => {
+    //                 console.error(error)
+    //             });
+    //         }).catch(error => {
+    //             console.error(error)
+    //         });
+    //     }).catch(error => {
+    //         console.error(error)
+    //     });
     // }).catch(error => {
     //     console.error(error)
     // });
+
     const clazzTestRoot = new JvmClass(Opcodes.ACC_PUBLIC, 'obzcu/re/TestRoot');
     addStaticClass(clazzTestRoot);
 
-    let testField = new JvmField(clazzTestRoot);
-    testField.asmLoad(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, 'abc', 'J', null, 69n);
-
-    const testFunction = new JvmFunction(clazzTestRoot, Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, 'test', '(Lobzcu/re/TestRoot;)I'); {
+    const pvsm = new JvmFunction(clazzTestRoot, Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, 'main', '([Ljava/lang/String;)V'); {
+        /*
+            NEW asmtesting/v1/TestV1
+            DUP
+            INVOKESPECIAL asmtesting/v1/TestV1.<init> ()V
+            POP
+         */
         const insns = [];
-        insns.push(new VarInsnNode(Opcodes.ALOAD, 0));
-        insns.push(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, clazzTestRoot.name, 'test2', '()I', [], 'I', false));
-        insns.push(new InsnNode(Opcodes.IRETURN));
-        testFunction.load(insns);
+        insns.push(new TypeInsnNode(Opcodes.NEW, clazzTestRoot.name));
+        insns.push(new InsnNode(Opcodes.DUP));
+        insns.push(new MethodInsnNode(Opcodes.INVOKESPECIAL, clazzTestRoot.name, '<init>', '()V', [], 'V', false));
+        insns.push(new InsnNode(Opcodes.POP));
+        insns.push(new InsnNode(Opcodes.RETURN));
+        pvsm.load(insns);
     }
 
-    const testFunction2 = new JvmFunction(clazzTestRoot, Opcodes.ACC_PUBLIC, 'test2', '()I'); {
+    const constructor = new JvmFunction(clazzTestRoot, Opcodes.ACC_PUBLIC, '<init>', '()V'); {
         const insns = [];
-        insns.push(new FieldInsnNode(Opcodes.GETSTATIC, clazzTestRoot.name, 'abc', 'J'));
-        insns.push(new InsnNode(Opcodes.L2I));
-        insns.push(new InsnNode(Opcodes.IRETURN));
-        testFunction2.load(insns);
+        insns.push(new InsnNode(Opcodes.RETURN));
+        constructor.load(insns);
     }
 
-    clazzTestRoot.load(
-        {[testField.getFieldPath()]: testField},
-        {[testFunction.getFuncPath()]: testFunction, [testFunction2.getFuncPath()]: testFunction2}
-    );
+    clazzTestRoot.load({}, {
+        [pvsm.getFuncPath()]: pvsm,
+        [constructor.getFuncPath()]: constructor
+    });
 
-    let clz = clazzTestRoot.newInstance();
+    const func = clazzTestRoot.findFunction('main', '([Ljava/lang/String;)V', true);
+    console.log(func.execute([JvmArray.of()]));
 
-    const func = clz.findFunction('test', '(Lobzcu/re/TestRoot;)I', true);
-    console.log(func.execute([clz]));
+    // const clazzTestRoot = new JvmClass(Opcodes.ACC_PUBLIC, 'obzcu/re/TestRoot');
+    // addStaticClass(clazzTestRoot);
+    //
+    // let testField = new JvmField(clazzTestRoot);
+    // testField.asmLoad(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, 'abc', 'J', null, 69);
+    //
+    // const testFunction = new JvmFunction(clazzTestRoot, Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, 'test', '(Lobzcu/re/TestRoot;)I'); {
+    //     const insns = [];
+    //     insns.push(new VarInsnNode(Opcodes.ALOAD, 0));
+    //     insns.push(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, clazzTestRoot.name, 'test2', '()I', [], 'I', false));
+    //     insns.push(new InsnNode(Opcodes.IRETURN));
+    //     testFunction.load(insns);
+    // }
+    //
+    // const testFunction2 = new JvmFunction(clazzTestRoot, Opcodes.ACC_PUBLIC, 'test2', '()I'); {
+    //     const insns = [];
+    //     insns.push(new FieldInsnNode(Opcodes.GETSTATIC, clazzTestRoot.name, 'abc', 'J'));
+    //     insns.push(new InsnNode(Opcodes.L2I));
+    //     insns.push(new InsnNode(Opcodes.IRETURN));
+    //     testFunction2.load(insns);
+    // }
+    //
+    // clazzTestRoot.load(
+    //     {[testField.getFieldPath()]: testField},
+    //     {[testFunction.getFuncPath()]: testFunction, [testFunction2.getFuncPath()]: testFunction2}
+    // );
+    //
+    // let clz = clazzTestRoot.newInstance();
+    //
+    // const func = clz.findFunction('test', '(Lobzcu/re/TestRoot;)I', true);
+    // console.log(func.execute([clz]));
 
     // const c = JvmChar.of('a');
     // c.set(JvmChar.MAX_VALUE)
