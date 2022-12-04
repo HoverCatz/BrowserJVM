@@ -15,7 +15,7 @@ class IntInsnNode extends INode {
             stack.push(JvmShort.of(operand));
         } else if (this.opcode === Opcodes.NEWARRAY) {
             const count = stack.pop();
-            assertAsmType(1, count, 'I');
+            assertJvmType(1, count, 'JvmInteger');
             let arrayType;
             switch (operand) {
                 case 4: arrayType = 'Z'; break;
@@ -29,7 +29,7 @@ class IntInsnNode extends INode {
                 default:
                     throw new JvmError(`Invalid NEWARRAY type: ${operand}`, 'java/lang/RuntimeException');
             }
-            stack.push(new JvmArray([...Array(count)].fill(null), arrayType));
+            stack.push(new JvmArray([], arrayType, count));
         }
     }
 
