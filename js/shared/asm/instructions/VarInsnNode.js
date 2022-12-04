@@ -18,7 +18,11 @@ class VarInsnNode extends INode {
         :
             stack.pop(); // Store
 
-        assertAsmType(1, value, data.type);
+        const jvmType = getJvmTypeString(value, true);
+        if (jvmType.length === 1)
+            assertJvmType(1, value, data.type);
+        else if (!!jvmType)
+            assertIsJvm(1, value, data.type)
 
         if (data.load)
             stack.push(value); // Load
@@ -28,12 +32,12 @@ class VarInsnNode extends INode {
 
     #getData() {
         const opcode = Opcodes.ILOAD_0 + this.nextInt();
-        if (!((opcode >= Opcodes.ILOAD_0 && opcode <= Opcodes.FLOAD_3) ||
+        if (!((opcode >= Opcodes.ILOAD_0 && opcode <= Opcodes.ALOAD_3) ||
               (opcode >= Opcodes.ISTORE_0 && opcode <= Opcodes.ASTORE_3)))
             throw new Error('Opcode outside scope.');
         const opcodeRev = OpcodesReverse[opcode];
         return {
-            'type': opcodeRev[0], // B, C, S, I, F, L, D
+            'type': opcodeRev[0], // B, C, S, I, F, L, D, A
             'load': opcodeRev[1] === 'L', // L(oad), S(tore)
             'size': +opcodeRev[opcodeRev.length - 1] + 1 // _0 = 1, _1 = 2, etc
         };
