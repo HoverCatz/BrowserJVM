@@ -236,6 +236,7 @@ function isJvmType(object, type) {
     if (type === 'JvmFloat' || type === 'F')   return object instanceof JvmFloat;
     if (type === 'JvmLong' || type === 'J')    return object instanceof JvmLong;
     if (type === 'JvmDouble' || type === 'D')  return object instanceof JvmDouble;
+    if (type === 'JvmBoolean')                 return object instanceof JvmBoolean;
     // Check for object types
     if (type === 'JvmClass')                   return object instanceof JvmClass;
     if (type === 'JvmObject' || type === 'A')  return object instanceof JvmObject;
@@ -265,6 +266,7 @@ function getJvmTypeString(object, short = false) {
     if (object instanceof JvmFloat) return !short ? 'JvmFloat' : 'F';
     if (object instanceof JvmLong) return !short ? 'JvmLong' : 'J';
     if (object instanceof JvmDouble) return !short ? 'JvmDouble' : 'D';
+    if (object instanceof JvmBoolean) return !short ? 'JvmBoolean' : 'Z';
     if (object instanceof JvmNumber) return 'JvmNumber';
     // Check for object types
     if (object instanceof JvmClass) return 'JvmClass';
@@ -298,6 +300,7 @@ function isJvmNumber(name) {
         case 'JvmFloat':
         case 'JvmLong':
         case 'JvmDouble':
+        case 'JvmBoolean':
             return true;
     }
     return false;
@@ -308,6 +311,7 @@ function isJvmObject(name) {
         case 'JvmString':
         case 'JvmArray':
         case 'JvmObject':
+        case 'JvmClass':
             return true;
     }
     if (name.startsWith('JvmArray<') && name.endsWith('>'))
@@ -325,7 +329,14 @@ function assertJvmType(name, object, type) {
     }
 }
 
-function asmTypeToJvmType(asmType) {
+function assertIsJvm(name, object, type) {
+    type = asmTypeToJvmType(type, true);
+    if (!(isJvmNumber(type) || isJvmObject(type))) {
+        throw new JvmError(`val${name} wasn't a Jvm typed object, it was '${typeof object}' instead.`);
+    }
+}
+
+function asmTypeToJvmType(asmType, returnOriginalIfFalse = false) {
     let arrayCount = 0;
     while (asmType.startsWith('[')) {
         asmType = asmType.substring(1);
@@ -340,6 +351,7 @@ function asmTypeToJvmType(asmType) {
         case 'F': return prefix + 'JvmFloat';
         case 'J': return prefix + 'JvmLong';
         case 'D': return prefix + 'JvmDouble';
+        case 'Z': return prefix + 'JvmBoolean';
     }
     switch (stripAsmDesc(asmType)) {
         case 'java/lang/Byte':      return prefix + 'JvmByte';
@@ -349,12 +361,13 @@ function asmTypeToJvmType(asmType) {
         case 'java/lang/Float':     return prefix + 'JvmFloat';
         case 'java/lang/Long':      return prefix + 'JvmLong';
         case 'java/lang/Double':    return prefix + 'JvmDouble';
+        case 'java/lang/Boolean':   return prefix + 'JvmBoolean';
 
         case 'java/lang/CharSequence':
         case 'java/lang/String':    return prefix + 'JvmString';
         case 'java/lang/Object':    return prefix + 'JvmObject';
     }
-    return false;
+    return returnOriginalIfFalse ? false : asmType;
 }
 
 /*
@@ -426,6 +439,15 @@ function assertAsmType(name, obj, asmType) {
     }
 }
 
+function getArrayCount(desc) {
+    let count = 0;
+    while (desc.startsWith('[')) {
+        desc = desc.substring(1);
+        count++;
+    }
+    return count;
+}
+
 function stripAsmDesc(desc) {
     while (desc.startsWith('['))
         desc = desc.substring(1);
@@ -439,7 +461,9 @@ function getReturnType(desc) {
 }
 
 function getArgumentTypes(desc) {
-    desc = desc.substring(1, desc.indexOf(')'));
+    desc = desc.substring(desc.indexOf('(') + 1, desc.indexOf(')'));
+    if (desc.length === 0)
+        return [];
     const types = [];
     let currentString = '';
     let inString = false;
@@ -495,7 +519,7 @@ function isPrimitiveType(desc) {
     return false;
 }
 
-function isInstance(first, second) {
+function isPrimitiveInstance(primObject, ofClass) {
 
 }
 

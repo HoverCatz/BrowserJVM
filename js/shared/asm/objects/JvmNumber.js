@@ -10,6 +10,8 @@ const JvmNumberType = {
     // 64-bit
     Long: 'JvmLong',
     Double: 'JvmDouble',
+    // ?-bit
+    Boolean: 'JvmBoolean'
 }
 
 const JvmNumberAsmSymbols = {
@@ -19,7 +21,8 @@ const JvmNumberAsmSymbols = {
     Int: 'I',
     Float: 'F',
     Long: 'J',
-    Double: 'D'
+    Double: 'D',
+    Boolean: 'Z'
 }
 
 class JvmNumber {
@@ -562,4 +565,49 @@ class JvmDouble extends JvmNumber {
     static get EPSILON_VALUE() { return 4.94065645841246544176568792868221372365059802614324764425585682500675507270208751865299836361635992379796564695445717730926656710355939796398774796010781878126300713190311404527845817167848982103688718636056998730723050006387409153564984387312473397273169615140031715385398074126238565591171026658556686768187039560310624931945271591492455329305456544401127480129709999541931989409080416563324524757147869014726780159355238611550134803526493472019379026810710749170333222684475333572083243193609238289345836806010601150616980975307834227731832924790498252473077637592724787465608477820373446969953364701797267771758512566055119913150489110145103786273816725095583738973359899E-32 };
     /** @type {number} */
     static get MIN_VALUE() { return -JvmDouble.MAX_VALUE };
+}
+
+// ?-bit
+class JvmBoolean extends JvmNumber {
+
+    /** @param value {number|BigInt|boolean} */
+    constructor(value) {
+        super(JvmBoolean.#clamp(value), JvmNumberType.Boolean, JvmNumberAsmSymbols.Boolean);
+    }
+
+    static of(value) {
+        return new JvmBoolean(value);
+    }
+
+    /* Some unsupported math operations */
+    addWithOther(other) { throw new Error('Not supported for JvmBoolean.'); }
+    subWithOther(other) { throw new Error('Not supported for JvmBoolean.'); }
+    mulWithOther(other) { throw new Error('Not supported for JvmBoolean.'); }
+    divWithOther(other) { throw new Error('Not supported for JvmBoolean.'); }
+    remWithOther(other) { throw new Error('Not supported for JvmBoolean.'); }
+    shlWithOther(other) { throw new Error('Not supported for JvmBoolean.'); }
+    shrWithOther(other) { throw new Error('Not supported for JvmBoolean.'); }
+    ushrWithOther(other) { throw new Error('Not supported for JvmBoolean.'); }
+    andWithOther(other) { throw new Error('Not supported for JvmBoolean.'); }
+    orWithOther(other) { throw new Error('Not supported for JvmBoolean.'); }
+    xorWithOther(other) { throw new Error('Not supported for JvmBoolean.'); }
+    neg() { throw new Error('Not supported for JvmBoolean.'); }
+
+    /**
+     * @param value {number|BigInt|boolean}
+     */
+    static #clamp(value) {
+        if (typeof value === 'bigint')
+            value = Number(value) !== 0;
+        if (typeof value === 'number')
+            value = value !== 0;
+        return value;
+    }
+
+    /** @type {number} */
+    static get MAX_VALUE() { return 1 };
+    /** @type {number} */
+    static get EPSILON_VALUE() { return 1 };
+    /** @type {number} */
+    static get MIN_VALUE() { return 0 };
 }
