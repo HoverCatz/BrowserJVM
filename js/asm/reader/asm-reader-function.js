@@ -1068,16 +1068,21 @@ class AsmFunctionReader {
                 case Opcodes.INVOKEINTERFACE: {
                     let cpInfoOffset = this.cpInfoOffsets[readUnsignedShort(bytes, currentOffset + 1)];
                     let nameAndTypeCpInfoOffset = this.cpInfoOffsets[readUnsignedShort(bytes, cpInfoOffset + 2)];
-                    let owner = readClass(this.constantUtf8Values, cpInfoOffset, this.cpInfoOffsets, bytes);
-                    let name = readUTF8(this.constantUtf8Values, nameAndTypeCpInfoOffset, this.cpInfoOffsets, bytes);
-                    let descriptor = readUTF8(this.constantUtf8Values, nameAndTypeCpInfoOffset + 2, this.cpInfoOffsets, bytes);
-
+                    const owner = readClass(this.constantUtf8Values, cpInfoOffset, this.cpInfoOffsets, bytes);
+                    const name = readUTF8(this.constantUtf8Values, nameAndTypeCpInfoOffset, this.cpInfoOffsets, bytes);
+                    const descriptor = readUTF8(this.constantUtf8Values, nameAndTypeCpInfoOffset + 2, this.cpInfoOffsets, bytes);
                     console.log('owner:', owner, 'name:', name, 'desc:', descriptor)
                     if (opcode < Opcodes.INVOKEVIRTUAL) {
                     //     methodVisitor.visitFieldInsn(opcode, owner, name, descriptor);
+                        instructions[currentBytecodeOffset] = new FieldInsnNode(opcode, owner, name, descriptor);
+                        instructionIndexes.push(currentBytecodeOffset);
                     } else {
+                        const isStatic = opcode == Opcodes.INVOKESTATIC;
                         let isInterface = bytes[cpInfoOffset - 1] === 11; // Symbol.CONSTANT_INTERFACE_METHODREF_TAG
                     //     methodVisitor.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
+                        instructions[currentBytecodeOffset] = new MethodInsnNode(opcode, owner, name, descriptor,
+                            getArgumentTypes(descriptor), getReturnType(descriptor), isStatic, isInterface);
+                        instructionIndexes.push(currentBytecodeOffset);
                     }
                     if (opcode == Opcodes.INVOKEINTERFACE) {
                         currentOffset += 5;
@@ -1087,7 +1092,8 @@ class AsmFunctionReader {
                     break;
                 }
                 case Opcodes.INVOKEDYNAMIC: {
-                    throw new Error('Not supported right now!'); // There is no indy in java7.
+                    // There is no indy in java7.
+                    throw new Error('Not supported right now!');
                     // int cpInfoOffset = cpInfoOffsets[readUnsignedShort(currentOffset + 1)];
                     // int nameAndTypeCpInfoOffset = cpInfoOffsets[readUnsignedShort(cpInfoOffset + 2)];
                     // String name = readUTF8(nameAndTypeCpInfoOffset, charBuffer);
