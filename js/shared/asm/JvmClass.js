@@ -4,7 +4,7 @@ class JvmClass {
     /** @type string */ package;   // package only
     /** @type string */ className; // classname only
     /** @type string */ name;      // full name (package + className)
-    /** @type JvmClass|string */ superClass;
+    /** @type JvmClass|string|boolean */ superClass;
     /** @type JvmClass[]|string[] */ interfaces;
 
     /** @type JvmField */ fields;
@@ -51,6 +51,10 @@ class JvmClass {
             }
             this.superClass = superClass; // If this is false, it means the superClass is java.lang.Object (the default one)
             this.interfaces = interfaces;
+            // Jvm
+            this.nestMembers = [];
+            this.permittedSubClasses = [];
+            this.innerClasses = [];
         } else {
             // This should only happen from within ASM!
             // All values will be filled in later when loading from .class files.
@@ -96,11 +100,24 @@ class JvmClass {
         this.isInstance = true;
         this.isStaticInstance = false;
         if (!!this.superClass) {
-            this.superClass = this.superClass.newInstance({
-                'uniqueIdentifier': uniqueIdentifier,
-                'incrementUidIndex': false
-            });
-            this.superClass.uniqueIdentifier = uniqueIdentifier;
+            if (typeof this.superClass === 'string') {
+                const type = this.superClass;
+                if (type !== 'java/lang/Object') {
+                    this.superClass = findStaticClass(type);
+                    if (!this.superClass)
+                        throw new Error(`Class ${type} not found.`);
+                } else {
+                    this.superClass = false;
+                }
+            }
+            if (!!this.superClass) {
+                console.log('setting superClass to type ', this.superClass)
+                this.superClass = this.superClass.newInstance({
+                    'uniqueIdentifier': uniqueIdentifier,
+                    'incrementUidIndex': false
+                });
+                this.superClass.uniqueIdentifier = uniqueIdentifier;
+            }
         }
         const itzs = this.interfaces;
         for (const index in itzs) {
@@ -160,7 +177,7 @@ class JvmClass {
         const newFields = {};
         for (const index in this.fields) {
             const field = this.fields[index];
-            let newField = field.newInstance(field.isStaticInstance);
+            let newField = field.newInstance(isStatic(field.accessFlags));
             newField.asmLoad(field.accessFlags, field.fieldName, field.fieldDesc, field.signature, field.constantValue);
             newFields[newField.getFieldPath()] = newField;
         }
@@ -170,6 +187,11 @@ class JvmClass {
             const newFunc = new JvmFunction(clz, func.accessFlags, func.functionName, func.functionDesc);
             newFunc.load(func.instructions, func.tryCatches); // TODO: Clone instructions and/or tryCatches too? :>
             newFunctions[func.getFuncPath()] = newFunc;
+        }
+        if (this.innerClasses.length > 0) {
+            this.innerClasses.forEach(innerClz => {
+                clz.innerClasses.push(deepCloneObject(innerClz));
+            })
         }
         clz.load(newFields, newFunctions);
         clz.initialize(
