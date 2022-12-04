@@ -160,8 +160,8 @@ class JvmClass {
         const newFields = {};
         for (const index in this.fields) {
             const field = this.fields[index];
-            let newField = new JvmField(clz, field.accessFlags, field.fieldName, field.fieldDesc);
-            if (!newField.isStaticInstance) newField = newField.newInstance();
+            let newField = field.newInstance(field.isStaticInstance);
+            newField.asmLoad(field.accessFlags, field.fieldName, field.fieldDesc, field.signature, field.constantValue);
             newFields[newField.getFieldPath()] = newField;
         }
         const newFunctions = {};
@@ -221,7 +221,12 @@ class JvmClass {
 
         // Find other
         const found = findStaticClass(other);
-        if (!found) return 1;
+        if (!found) return false;
+
+        // Find other by uniqueIdentifier
+        const reverseFound = this.#tryReverseInstanceOf(found, returnInstance);
+        if (!!reverseFound)
+            return reverseFound;
 
         // Check self, again!
         if (thisPath === found.getPath(true)) {
@@ -237,7 +242,7 @@ class JvmClass {
 
         // If we don't have interfaces, just abort
         if (this.interfaces.length === 0)
-            return this.#tryReverseInstanceOf(found, returnInstance);
+            return false;
 
         // Check any interface is instance of other
         const itzs = this.interfaces;
