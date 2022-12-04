@@ -46,7 +46,7 @@ class JvmField {
         this.fieldDesc = fieldDesc;
         this.signature = signature;
         this.constantValue = constantValue;
-        if (constantValue !== undefined) {
+        if (constantValue !== undefined && typeof this.value === 'undefined') {
             console.log('constantValue:`',constantValue,'`')
             if (constantValue == null) {
                 this.setValue(null);
