@@ -2,6 +2,7 @@
 class INode {
 
     opcode; // The instruction opcode
+    opcodeRev; // The named instruction opcode
 
     hasExecuted;
 
@@ -15,6 +16,7 @@ class INode {
 
     constructor(opcode, input) {
         this.opcode = opcode;
+        this.opcodeRev = OpcodesReverse[opcode];
         this.original = input;
         this.reset();
     }
@@ -31,6 +33,7 @@ class INode {
         this.currentInput = 0;
         this.retValue = null;
         this.doReturn = false;
+        this.hasExecuted = false;
     }
 
     returnObject(obj) {
