@@ -32,10 +32,12 @@ class MethodInsnNode extends INode {
 
         if (name === '<init>') {
 
-            const ref = stack.pop();
+            let ref = stack.pop();
             assertJvmType(1, ref, 'JvmClass');
-            if (ref.isStaticInstance)
-                throw new Error('Trying to use a static class to in <init>.');
+            if (!ref.isStaticInstance)
+                throw new Error('Trying to use a non-static class for initialization.');
+
+            ref = ref.newInstance();
 
             const constructor = ref.findFunction(name, descriptor, false);
             if (!constructor)
