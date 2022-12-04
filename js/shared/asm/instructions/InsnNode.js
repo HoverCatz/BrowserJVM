@@ -580,16 +580,17 @@ class InsnNode extends INode {
 
             case Opcodes.IRETURN: {
                 let val = stack.pop();
+                console.log('val:',val)
                 if (val instanceof JvmByte ||
                     val instanceof JvmChar ||
                     val instanceof JvmShort ||
                     val instanceof JvmInteger ||
-                    val instanceof Boolean ||
+                    typeof val === 'boolean' ||
                     compareTypes(val, 'Z') ||
                     compareTypes(val, 'I')) {
                     this.returnObject(val);
                 } else {
-                    throw new Error(`Wrong IRETURN type: ${getTypeString(val)}, asmType 'B', 'C', 'S', 'I', or 'Z', required.`);
+                    throw new Error(`Wrong IRETURN type: ${getJvmTypeString(val)}, asmType 'B', 'C', 'S', 'I', or 'Z', required.`);
                 }
             } break;
             case Opcodes.LRETURN: {
