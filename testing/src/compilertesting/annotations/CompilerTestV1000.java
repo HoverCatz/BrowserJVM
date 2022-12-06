@@ -13,4 +13,8 @@ package compilertesting.annotations;
 @TestAnnotation.TestInnerAnnotation(abc = 789)
 public class CompilerTestV1000 {
 
+    int abc = 123;
+
+    String hello = "world";
+
 }

@@ -14,12 +14,13 @@ class JavaSourceReader extends JavacUtils {
         this.clz = new JvmClass();
     }
 
-    async parseSourceCode() {
+    async parseSourceCode(throwErrors = true) {
         const iter = this.iter;
 
         // Read package
         const pkg = [];
         let word = this.readWord();
+        if (word === false) return false;
         if (word === 'package')
             pkg.push(...this.readPackage(iter));
         console.log(`package: ${pkg.join('.')}`)
@@ -28,6 +29,7 @@ class JavaSourceReader extends JavacUtils {
         const annotationData = [];
         while (true) {
             let char = iter.peek();
+            if (char === false) return false;
             if (char === '@') {
                 const anno = this.readAnnotation(iter);
 
@@ -98,17 +100,33 @@ class JavaSourceReader extends JavacUtils {
         ];
         const classType = this.readWord(iter);
         console.log(`classType: ${classType}`) // classType (class, enum, interface, etc)
-        if (!classTypes.includes(classType))
-            throw new Error(`Class-type '${classType}' not supported.`);
+        if (!classTypes.includes(classType)) {
+            if (throwErrors) throw new Error(`Class-type '${classType}' not supported.`);
+            return false;
+        }
 
         // Read class-name
         const className = this.readWord(iter);
         console.log(`className: ${className}`) // className
 
-        const [ a, b, c ] = this.findOpenCloseRange(this.text, iter.index(), '{', '}');
-        console.log(a, b, c)
+        const [ blockOpen, blockEnd, classBlock ] = this.findOpenCloseRange(this.text, iter.index(), '{', '}');
+        // Verify content after class has ended
+        const lastText = this.text.substring(blockEnd + 1).trimEnd();
+        console.log(`'${lastText}'`)
 
-        return '';
+        if (lastText.length > 0) {
+            if (throwErrors) throw new Error('Garbage-data at end of class.');
+            return false;
+        }
+
+        return {
+            'package': pkg,
+            'className': className,
+            'classType': classType,
+            'accessFlags': classAccess,
+            'annotations': annotationData.join(', '),
+            'classBlock': classBlock
+        };
     }
 
     /**
@@ -123,8 +141,10 @@ class JavaSourceReader extends JavacUtils {
         const annoClassName = [];
         while (true) {
             const char = iter.peek();
+            if (char === false) return false;
             if (this.isAlphaNumeric(char)) {
                 const word = this.readWord(iter);
+                if (word === false) return false;
                 annoClassName.push(word);
             } else if (char === '.') {
                 iter.next();
@@ -140,6 +160,7 @@ class JavaSourceReader extends JavacUtils {
 
         // Check if we have more data
         let char = iter.peek();
+        if (char === false) return false;
         if (char === '(') {
             const index = iter.index();
             data.data = this.readAnnotationData(iter, index);
@@ -157,8 +178,8 @@ class JavaSourceReader extends JavacUtils {
         const [open, close, sub] = this.findOpenCloseRange(this.text, index, '(', ')');
         // console.log(sub)
         return {
-            'open': open + index,
-            'close': close + index,
+            'open': open,
+            'close': close,
             'sub': sub
         };
     }
@@ -166,24 +187,30 @@ class JavaSourceReader extends JavacUtils {
     /**
      * Parse package
      * @param iter {Iterator}
-     * @returns {string[]}
+     * @returns {string[]|false}
      */
     readPackage(iter) {
         const pkg = [];
         while (true) {
             const char = iter.peek();
+            if (char === false) return false;
             if (this.isAlphaNumeric(char)) {
-                pkg.push(this.readWord());
+                const word = this.readWord();
+                if (word === false) return false;
+                pkg.push(word);
             } else if (char === '.') {
                 iter.next();
-                this.skipWhitespace(iter);
+                if (!this.skipWhitespace(iter))
+                    return false;
                 continue;
             } else if (char === ';') {
                 iter.next();
-                this.skipWhitespace(iter);
+                if (!this.skipWhitespace(iter))
+                    return false;
                 break;
             } else if (this.isWhitespace(char)) {
-                this.skipWhitespace(iter);
+                if (!this.skipWhitespace(iter))
+                    return false;
             } else {
                 throw new Error(`Invalid character: '${char}'`);
             }

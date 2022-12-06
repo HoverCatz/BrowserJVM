@@ -6,6 +6,9 @@ class JavacUtils {
     /** @type Iterator */
     iter;
 
+    /** @type boolean */
+    done;
+
     constructor(iter) {
         this.iter = iter;
     }
@@ -30,15 +33,19 @@ class JavacUtils {
 
     readWord(iter = null) {
         iter = (iter === null ? this.iter : iter);
-        this.skipWhitespace(iter);
+        if (!this.skipWhitespace(iter)) return false;
         let output = '';
         while (true) {
             const peek = iter.peek();
+            if (!peek) {
+                this.done = true;
+                return false;
+            }
             if (!this.isAlphaNumeric(peek))
                 break;
             output += iter.next();
         }
-        this.skipWhitespace(iter);
+        if (!this.skipWhitespace(iter)) return false;
         return output;
     }
 
@@ -49,7 +56,10 @@ class JavacUtils {
         while (iter.index() < packageEnd) {
             // this.skipWhitespace(iter);
             const word = this.readWord(iter);
-            console.log(`word: '${word}'`)
+            if (!word) {
+                this.done = true;
+                return false;
+            }
             pkg.push(word);
         }
         this.skipWhitespace(iter);
@@ -60,10 +70,15 @@ class JavacUtils {
         iter = (iter === null ? this.iter : iter);
         while (true) {
             const peek = iter.peek();
+            if (!peek) {
+                this.done = true;
+                return false;
+            }
             if (!this.isWhitespace(peek))
                 break;
             iter.next();
         }
+        return true;
     }
 
     /**
@@ -75,10 +90,8 @@ class JavacUtils {
      * @returns {(number|string)[]}
      */
     findOpenCloseRange(text, index, open, close) {
-        // Set up substring
-        text = text.substring(index);
-        let openIndex = 0;
-        let closeIndex = 0;
+        let openIndex = index;
+        let closeIndex = index;
         // Keep track of open/closing
         let count = 0;
         // Are we inside a string? ""
@@ -90,7 +103,7 @@ class JavacUtils {
         // Are we inside a multi-line comment? /*
         let inComment2 = false;
         // Make a new temporary iterator
-        const iter = new Iterator(text);
+        const iter = new Iterator(text.substring(index));
         while (true) {
             const char = iter.next();
             if (!char)
