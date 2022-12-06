@@ -1,5 +1,6 @@
-public class Test
-{
+package compilertesting;
+
+public class Test {
 
     static String abc = "";
 

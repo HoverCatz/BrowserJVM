@@ -1,6 +1,35 @@
 // New attempt
 (async () => {
 
+    const files = {
+        '1': 'testing/src/compilertesting/fields/CompilerTestV1.java',
+        '2': 'testing/src/compilertesting/fields/CompilerTestV2.java',
+        '3': 'testing/src/compilertesting/fields/CompilerTestV3.java',
+        '4': 'testing/src/compilertesting/fields/CompilerTestV4.java',
+        '5': 'testing/src/compilertesting/fields/CompilerTestV5.java',
+        '6': 'testing/src/compilertesting/fields/CompilerTestV6.java',
+
+        '100': 'testing/src/compilertesting/functions/CompilerTestV100.java',
+        '101': 'testing/src/compilertesting/functions/CompilerTestV101.java',
+        '102': 'testing/src/compilertesting/functions/CompilerTestV102.java',
+        '103': 'testing/src/compilertesting/functions/CompilerTestV103.java',
+        '104': 'testing/src/compilertesting/functions/CompilerTestV104.java',
+
+        'test': 'testing/src/compilertesting/Test.java',
+
+        'anno': 'testing/src/compilertesting/annotations/CompilerTestV1000.java'
+    };
+    const selectedFile = 'anno';
+
+    const sourceReader = new JavaSourceReader(files[selectedFile]);
+    await sourceReader.init();
+
+    sourceReader.parseSourceCode().then(json => {
+        console.log(json)
+    }).catch(error => {
+        console.error(error)
+    })
+
     // readClassFile('out/production/BrowserJVM/asmtesting/v1/TestV1.class').then(clz => {
     //     console.log('class loaded:', clz)
     //     if (!clz) return;
@@ -29,38 +58,38 @@
     //     console.error(error)
     // });
 
-    const clazzTestRoot = new JvmClass(Opcodes.ACC_PUBLIC, 'obzcu/re/TestRoot');
-    addStaticClass(clazzTestRoot);
-
-    const pvsm = new JvmFunction(clazzTestRoot, Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, 'main', '([Ljava/lang/String;)V'); {
-        /*
-            NEW asmtesting/v1/TestV1
-            DUP
-            INVOKESPECIAL asmtesting/v1/TestV1.<init> ()V
-            POP
-         */
-        const insns = [];
-        insns.push(new TypeInsnNode(Opcodes.NEW, clazzTestRoot.name));
-        insns.push(new InsnNode(Opcodes.DUP));
-        insns.push(new MethodInsnNode(Opcodes.INVOKESPECIAL, clazzTestRoot.name, '<init>', '()V', [], 'V', false));
-        insns.push(new InsnNode(Opcodes.POP));
-        insns.push(new InsnNode(Opcodes.RETURN));
-        pvsm.load(insns);
-    }
-
-    const constructor = new JvmFunction(clazzTestRoot, Opcodes.ACC_PUBLIC, '<init>', '()V'); {
-        const insns = [];
-        insns.push(new InsnNode(Opcodes.RETURN));
-        constructor.load(insns);
-    }
-
-    clazzTestRoot.load({}, {
-        [pvsm.getFuncPath()]: pvsm,
-        [constructor.getFuncPath()]: constructor
-    });
-
-    const func = clazzTestRoot.findFunction('main', '([Ljava/lang/String;)V', true);
-    console.log(func.execute([JvmArray.of()]));
+    // const clazzTestRoot = new JvmClass(Opcodes.ACC_PUBLIC, 'obzcu/re/TestRoot');
+    // addStaticClass(clazzTestRoot);
+    //
+    // const pvsm = new JvmFunction(clazzTestRoot, Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, 'main', '([Ljava/lang/String;)V'); {
+    //     /*
+    //         NEW asmtesting/v1/TestV1
+    //         DUP
+    //         INVOKESPECIAL asmtesting/v1/TestV1.<init> ()V
+    //         POP
+    //      */
+    //     const insns = [];
+    //     insns.push(new TypeInsnNode(Opcodes.NEW, clazzTestRoot.name));
+    //     insns.push(new InsnNode(Opcodes.DUP));
+    //     insns.push(new MethodInsnNode(Opcodes.INVOKESPECIAL, clazzTestRoot.name, '<init>', '()V', [], 'V', false));
+    //     insns.push(new InsnNode(Opcodes.POP));
+    //     insns.push(new InsnNode(Opcodes.RETURN));
+    //     pvsm.load(insns);
+    // }
+    //
+    // const constructor = new JvmFunction(clazzTestRoot, Opcodes.ACC_PUBLIC, '<init>', '()V'); {
+    //     const insns = [];
+    //     insns.push(new InsnNode(Opcodes.RETURN));
+    //     constructor.load(insns);
+    // }
+    //
+    // clazzTestRoot.load({}, {
+    //     [pvsm.getFuncPath()]: pvsm,
+    //     [constructor.getFuncPath()]: constructor
+    // });
+    //
+    // const func = clazzTestRoot.findFunction('main', '([Ljava/lang/String;)V', true);
+    // console.log(func.execute([JvmArray.of()]));
 
     // const clazzTestRoot = new JvmClass(Opcodes.ACC_PUBLIC, 'obzcu/re/TestRoot');
     // addStaticClass(clazzTestRoot);
