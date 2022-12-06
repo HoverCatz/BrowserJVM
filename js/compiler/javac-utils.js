@@ -118,7 +118,6 @@ class JavacUtils {
             } else if (inComment1) {
                 if (char === '\n') {
                     inComment1 = false;
-                    iter.next(); // Skip newline
                 }
                 continue;
             }
@@ -137,7 +136,6 @@ class JavacUtils {
 
             if (char === '"') {
                 inString = true;
-                iter.next(); // Skip "
                 continue;
             }
 
@@ -170,6 +168,9 @@ class Iterator {
     /** @type int */
     curr = -1;
 
+    /** @type {{}} */
+    bookmarks = {};
+
     constructor(text) {
         this.chars = text.split('');
         this.len = text.length;
@@ -185,6 +186,15 @@ class Iterator {
 
     length() {
         return this.length;
+    }
+
+    setBookmark(num) {
+        this.bookmarks[num] = this.index();
+    }
+
+    gotoBookmark(num) {
+        this.setIndex(this.bookmarks[num]);
+        delete this.bookmarks[num];
     }
 
     /**
