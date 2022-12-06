@@ -54,15 +54,12 @@ class JavacUtils {
         const packageEnd = this.text.indexOf(';', iter.index());
         const pkg = [];
         while (iter.index() < packageEnd) {
-            // this.skipWhitespace(iter);
             const word = this.readWord(iter);
-            if (!word) {
-                this.done = true;
-                return false;
-            }
+            if (!word) return false;
             pkg.push(word);
         }
-        this.skipWhitespace(iter);
+        if (!this.skipWhitespace(iter))
+            return false;
         return pkg.join('.');
     }
 
