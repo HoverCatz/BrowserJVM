@@ -597,7 +597,7 @@ function processClasses(classes) {
         }
     }
 
-    debug = 1;
+    debug = 0;
 
     // Debug whole class
     if (debug) {
