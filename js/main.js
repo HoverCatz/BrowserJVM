@@ -20,15 +20,7 @@
         'anno': 'testing/src/compilertesting/annotations/CompilerTestV1000.java'
     };
     const selectedFile = 'anno';
-
-    const sourceReader = new JavaSourceReader(files[selectedFile]);
-    await sourceReader.init();
-
-    sourceReader.parseSourceCode().then(json => {
-        console.log(json)
-    }).catch(error => {
-        console.error(error)
-    })
+    await compileJavaSourceFile(files[selectedFile]);
 
     // readClassFile('out/production/BrowserJVM/asmtesting/v1/TestV1.class').then(clz => {
     //     console.log('class loaded:', clz)
@@ -122,7 +114,7 @@
     //
     // const func = clz.findFunction('test', '(Lobzcu/re/TestRoot;)I', true);
     // console.log(func.execute([clz]));
-
+ 
     // const c = JvmChar.of('a');
     // c.set(JvmChar.MAX_VALUE)
     // console.log(c.get()) // 65535
