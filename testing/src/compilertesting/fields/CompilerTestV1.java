@@ -1,4 +1,4 @@
- package compilertesting.fields;
+package compilertesting.fields;
 
 public class CompilerTestV1 {
 
