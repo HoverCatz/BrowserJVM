@@ -32,13 +32,16 @@ class JavaSourceReader extends JavacUtils {
             if (char === false) return false;
             if (char === '@') {
                 const anno = this.readAnnotation(iter);
+                if (anno === false)
+                    return false;
 
                 // if we have annotationData, set index at end of data
                 if (typeof anno.data === 'object')
                     iter.setIndex(anno.data.close);
 
                 // Reach next annotation (if any)
-                this.skipWhitespace(iter);
+                if (!this.skipWhitespace(iter))
+                    return false;
 
                 // Add annotation to the annotation list
                 annotationData.push(...[anno]);
@@ -51,7 +54,8 @@ class JavaSourceReader extends JavacUtils {
         console.log('annotationData:', annotationData)
 
         // Reach the class
-        this.skipWhitespace(iter);
+        if (!this.skipWhitespace(iter))
+            return false;
 
         let classAccess = 0;
         const accessWords = {
@@ -70,6 +74,7 @@ class JavaSourceReader extends JavacUtils {
 
         // Check class access
         word = this.readWord(iter);
+        if (word === false) return false;
         if (word in accessWords) {
             console.log(`classAccess: ${word}`)
             classAccess |= accessWords[word];
@@ -79,6 +84,7 @@ class JavaSourceReader extends JavacUtils {
 
             // Check class access again!
             word = this.readWord(iter);
+            if (word === false) return false;
             if (word in accessWords) {
                 console.log(`classAccess: ${word}`)
                 classAccess |= accessWords[word];
@@ -99,6 +105,7 @@ class JavaSourceReader extends JavacUtils {
             'interface'
         ];
         const classType = this.readWord(iter);
+        if (classType === false) return false;
         console.log(`classType: ${classType}`) // classType (class, enum, interface, etc)
         if (!classTypes.includes(classType)) {
             if (throwErrors) throw new Error(`Class-type '${classType}' not supported.`);
@@ -107,6 +114,7 @@ class JavaSourceReader extends JavacUtils {
 
         // Read class-name
         const className = this.readWord(iter);
+        if (className === false) return false;
         console.log(`className: ${className}`) // className
 
         const [ blockOpen, blockEnd, classBlock ] = this.findOpenCloseRange(this.text, iter.index(), '{', '}');
