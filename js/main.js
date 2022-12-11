@@ -17,9 +17,14 @@
 
         'test': 'testing/src/compilertesting/Test.java',
 
-        'anno': 'testing/src/compilertesting/annotations/CompilerTestV1000.java'
+        'anno0': 'testing/src/compilertesting/annotations/CompilerTestV1000.java',
+        'anno1': 'testing/src/compilertesting/annotations/CompilerTestV1001.java',
+        'anno2': 'testing/src/compilertesting/annotations/CompilerTestV1002.java',
+        'anno3': 'testing/src/compilertesting/annotations/CompilerTestV1003.java',
+        'anno4': 'testing/src/compilertesting/annotations/CompilerTestV1004.java',
+        'anno5': 'testing/src/compilertesting/annotations/CompilerTestV1005.java',
     };
-    const selectedFile = 'anno';
+    const selectedFile = 'anno5';
     await compileJavaSourceFile(files[selectedFile]);
 
     // readClassFile('out/production/BrowserJVM/asmtesting/v1/TestV1.class').then(clz => {
