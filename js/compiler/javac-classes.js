@@ -6,78 +6,105 @@ class JavaSourceReader extends JavacUtils {
     /** @type JvmClass */
     clz;
 
+    /** @type JavaSourceFieldReader */
+    fieldReader;
+
+    /** @type JavaSourceFunctionReader */
+    functionReader;
+
+    /**
+     * The text for the whole class (includes everything)
+     * @type string
+     * */
+    classText;
+
     constructor(fileName, text, iter) {
         super();
         this.fileName = fileName;
         this.text = text;
         this.iter = iter;
         this.clz = new JvmClass();
+        this.fieldReader = new JavaSourceFieldReader();
+        this.functionReader = new JavaSourceFunctionReader();
     }
 
+    /**
+     * Parse
+     * @param throwErrors {boolean}
+     * @returns {Promise<{}|json>|boolean}
+     * @throws {Error}
+     */
     async parseSourceCode(throwErrors = true) {
         const iter = this.iter;
 
         // Read package
         const pkg = [];
-        let word = this.readWord();
+        let word = this.peekWord();
         if (word === false) return false;
-        if (word === 'package')
+        if (word === 'package') {
+            this.readWord(iter); // Skip 'package'
             pkg.push(...this.readPackage(iter));
-        console.log(`package: ${pkg.join('.')}`)
+        }
+        console.log(`package: '${pkg.join('.')}'`)
 
-        // Read annotations
-        const annotationData = [];
+        const imports = [];
         while (true) {
-            let char = iter.peek();
-            if (char === false) return false;
-            if (char === '@') {
-                const anno = this.readAnnotation(iter);
-                if (anno === false)
-                    return false;
-
-                // if we have annotationData, set index at end of data
-                if (typeof anno.data === 'object')
-                    iter.setIndex(anno.data.close);
-
-                // Reach next annotation (if any)
-                if (!this.skipWhitespace(iter))
-                    return false;
-
-                // Add annotation to the annotation list
-                annotationData.push(...[anno]);
-
-                console.log(`annotationData: '${anno.annoClassName.join('.')}, hasData: ${typeof anno.data === 'object'}'`)
+            word = this.peekWord(iter);
+            if (word === false) return false;
+            if (word === 'import') {
+                this.readWord(iter); // Skip 'import'
+                imports.push(...[this.readImport(iter).trim()]);
             } else {
                 break;
             }
         }
+        console.log(`imports: '${imports.join(', ')}'`)
+
+        // Read annotations
+        const annotationData = this.readAnnotations(iter);
+        // while (true) {
+        //     let char = iter.peek();
+        //     if (char === false) return false;
+        //     if (char === '@') {
+        //         const anno = this.readAnnotation(iter);
+        //         if (anno === false)
+        //             return false;
+        //
+        //         // if we have annotationData, set index at end of data
+        //         if (typeof anno.data === 'object')
+        //             iter.setIndex(anno.data.close);
+        //
+        //         // Add annotation to the annotation list
+        //         annotationData.push(...[anno]);
+        //
+        //         console.log(`annotationData: '${anno.annoClassName.join('.')}, hasData: ${typeof anno.data === 'object'}'`)
+        //
+        //         // Reach next annotation (if any)
+        //         if (!this.skipWhitespace(iter))
+        //             return false;
+        //
+        //         break;
+        //     } else {
+        //         break;
+        //     }
+        // }
         console.log('annotationData:', annotationData)
 
         // Reach the class
         if (!this.skipWhitespace(iter))
             return false;
 
-        let classAccess = 0;
-        const accessWords = {
-            'public': Opcodes.ACC_PUBLIC,
-            'private': Opcodes.ACC_PRIVATE,
-            'protected': Opcodes.ACC_PROTECTED,
-            'static': Opcodes.ACC_STATIC,
-            'final': Opcodes.ACC_FINAL,
-            'abstract': Opcodes.ACC_ABSTRACT,
-            'deprecated': Opcodes.ACC_DEPRECATED
-            // Records aren't supported in java7
-        };
-
         // Set bookmark so we can return later if needed
         iter.setBookmark(0);
+
+        let classAccess = 0;
 
         // Check class access
         word = this.readWord(iter);
         if (word === false) return false;
-        if (word in accessWords) {
+        if (word in this.accessWords) {
             console.log(`classAccess: ${word}`)
-            classAccess |= accessWords[word];
+            classAccess |= this.accessWords[word];
 
             // Set bookmark so we can return later if needed
             iter.setBookmark(0);
@@ -85,9 +112,23 @@ class JavaSourceReader extends JavacUtils {
             // Check class access again!
             word = this.readWord(iter);
             if (word === false) return false;
-            if (word in accessWords) {
+            if (word in this.accessWords) {
                 console.log(`classAccess: ${word}`)
-                classAccess |= accessWords[word];
+                classAccess |= this.accessWords[word];
+
+                // Set bookmark so we can return later if needed
+                iter.setBookmark(0);
+
+                // Check class access again-again!
+                word = this.readWord(iter);
+                if (word === false) return false;
+                if (word in this.accessWords) {
+                    console.log(`classAccess: ${word}`)
+                    classAccess |= this.accessWords[word];
+                } else {
+                    // Reset iter index, because we didn't find another access flag
+                    iter.gotoBookmark(0);
+                }
             } else {
                 // Reset iter index, because we didn't find another access flag
                 iter.gotoBookmark(0);
@@ -96,18 +137,13 @@ class JavaSourceReader extends JavacUtils {
             // Reset iter index, because we didn't find any access flags
             iter.gotoBookmark(0);
         }
-        console.log(`accessFlags: ${classAccess}`)
+        console.log(`accessFlags: ${this.accessFlagsToString(classAccess)}`)
 
         // Check class-type
-        const classTypes = [
-            'class',
-            'enum',
-            'interface'
-        ];
         const classType = this.readWord(iter);
         if (classType === false) return false;
         console.log(`classType: ${classType}`) // classType (class, enum, interface, etc)
-        if (!classTypes.includes(classType)) {
+        if (!this.classTypes.includes(classType)) {
             if (throwErrors) throw new Error(`Class-type '${classType}' not supported.`);
             return false;
         }
@@ -117,15 +153,23 @@ class JavaSourceReader extends JavacUtils {
         if (className === false) return false;
         console.log(`className: ${className}`) // className
 
-        const [ blockOpen, blockEnd, classBlock ] = this.findOpenCloseRange(this.text, iter.index(), '{', '}');
-        // Verify content after class has ended
-        const lastText = this.text.substring(blockEnd + 1).trimEnd();
-        console.log(`'${lastText}'`)
+        // Extract class data
+        const [ ignored, blockEnd, classBlock ] = this.findOpenCloseRange(this.text, iter.index(), '{', '}');
 
-        if (lastText.length > 0) {
+        // Verify content after class has ended
+        const lastText = this.text.substring(blockEnd + 1);
+        const lastTextBlock = this.getTextWithoutComments(lastText).trim();
+
+        if (lastTextBlock.length > 0) {
             if (throwErrors) throw new Error('Garbage-data at end of class.');
             return false;
         }
+
+        this.classText = this.text;
+        this.text = classBlock;
+        this.iter = new Iterator(classBlock);
+        const classData = this.parseClassData(classBlock, this.iter);
+        if (classData === false) return false;
 
         return {
             'package': pkg,
@@ -133,8 +177,114 @@ class JavaSourceReader extends JavacUtils {
             'classType': classType,
             'accessFlags': classAccess,
             'annotations': annotationData.join(', '),
-            'classBlock': classBlock
+            'classData': classData
         };
+    }
+
+    /**
+     * Parse class data
+     * @param text {string}
+     * @param iter {Iterator}
+     * @returns {{}|json|false}
+     */
+    parseClassData(text, iter) {
+        if (iter.next() === false)
+            return false;
+        const fields = {};
+        const functions = {};
+
+        // Skip whitespace
+        if (!this.skipWhitespace(iter))
+            return false;
+
+        let annotations = [];
+        while (true) {
+            const iterIndex = iter.index();
+            let detectedType = this.detectNextItem(text, iter);
+            if (detectedType === false)
+                return false;
+
+            const [ index, itemType ] = detectedType;
+
+            // No detection found
+            if (index === -1)
+                break;
+
+            // Something found, but we don't know what it is
+            if (index <= -2)
+                throw new Error(`Unknown type '${itemType}' at index ${-(index + 2)}.`);
+
+            // console.log(`iterIndex: ${iterIndex}`)
+            // console.log(`subText: '${this.text.substring(iterIndex)}'`)
+            // console.log(`itemType: ${itemType}`)
+
+            switch (itemType) {
+                case ClassItemType.Annotation: {
+                    if (iter.char() === '@')
+                        iter.prev(); // Go back one character
+                    annotations = this.readAnnotations(iter);
+                    console.log(`anno:`, annotations)
+                } break;
+                case ClassItemType.FieldNoValue:
+                case ClassItemType.Field: {
+                    const subText = this.text.substring(iterIndex);
+                    const endIndex = this.fieldReader.process(subText, iterIndex, itemType);
+                    if (endIndex === false)
+                        return false;
+                    iter.setIndex(endIndex);
+                    // TODO: Remove
+                    return false;
+                } break;
+                case ClassItemType.Function: {
+
+                    // TODO: Remove
+                    return false;
+                } break;
+            }
+
+            // Skip whitespace
+            if (!this.skipWhitespace(iter))
+                return false;
+        }
+
+        // Skip whitespace
+        if (!this.skipWhitespace(iter))
+            return false;
+
+        return {
+            'fields': fields,
+            'functions': functions
+        };
+    }
+
+    /**
+     * Parse all annotations
+     * @param iter {Iterator}
+     * @returns {boolean|{}[]}
+     */
+    readAnnotations(iter) {
+        // Skip whitespace in-front
+        if (!this.skipWhitespace(iter))
+            return false;
+        const list = [];
+        while (true) {
+            const char = iter.peek();
+            if (char === false) return false;
+
+            // If not an annotation, abort
+            if (char !== '@') break;
+
+            // Read annotation
+            const anno = this.readAnnotation(iter);
+            if (anno === false) return false;
+
+            list.push(anno);
+
+            // Skip next whitespace
+            if (!this.skipWhitespace(iter))
+                return false;
+        }
+        return list;
     }
 
     /**
@@ -143,36 +293,59 @@ class JavaSourceReader extends JavacUtils {
      */
     readAnnotation(iter) {
         // Ignore first annotation character
-        iter.next(); // @
+        let peek = iter.peek();
+        if (peek !== '@')
+            return false;
+        iter.next(); // Skip @
 
         // Read annotation class name
-        const annoClassName = [];
+        const annoClassNames = [];
+        const data = { 'annoClassName': annoClassNames };
+
+        // @Test
+        // @Test()
+        // @Test.Inner
+        // @Test.Inner()
+        // @Test(abc = 123)
+        // @Test.Inner(abc = 123)
+
+        let word = '';
+        let expectedWord = true;
         while (true) {
             const char = iter.peek();
             if (char === false) return false;
-            if (this.isAlphaNumeric(char)) {
-                const word = this.readWord(iter);
-                if (word === false) return false;
-                annoClassName.push(word);
-            } else if (char === '.') {
+
+            let whitespace;
+            if (expectedWord && this.isAlphaNumeric(char)) {
+                word += char;
+                iter.next(); // Skip char
+            } else if ((whitespace = this.isWhitespace(char)) || char === '.') {
+                if (word !== '') {
+                    annoClassNames.push(word);
+                    word = '';
+                    if (whitespace)
+                        expectedWord = false;
+                }
                 iter.next();
-                continue;
+                if (!whitespace)
+                    expectedWord = true;
+            } else if (char === '(') {
+                if (word !== '') {
+                    annoClassNames.push(word);
+                    word = '';
+                }
+                const [ _, close, sub ] = this.findOpenCloseRange(this.text, iter.index(), '(', ')');
+                // TODO: Parse inner data (annotation fields can also include annotations as values)
+                data.data = sub;
+                iter.setIndex(close);
+                break;
             } else {
                 break;
             }
         }
 
-        const data = {
-            'annoClassName': annoClassName,
-        };
-
-        // Check if we have more data
-        let char = iter.peek();
-        if (char === false) return false;
-        if (char === '(') {
-            const index = iter.index();
-            data.data = this.readAnnotationData(iter, index);
-        }
+        // Just for testing (readability in console)
+        // data.annoClassName = JSON.stringify(data.annoClassName);
 
         return data;
     }
@@ -184,6 +357,7 @@ class JavaSourceReader extends JavacUtils {
      */
     readAnnotationData(iter, index) {
         const [open, close, sub] = this.findOpenCloseRange(this.text, index, '(', ')');
+        // TODO: Parse annotation data
         // console.log(sub)
         return {
             'open': open,
@@ -193,36 +367,32 @@ class JavaSourceReader extends JavacUtils {
     }
 
     /**
+     * Read one import statement
+     * @param iter
+     * @returns {boolean|string|boolean}
+     */
+    readImport(iter) {
+        const str = this.readUntil(';', iter, false);
+        if (str === false) return false;
+        if (!iter.next()) // Skip ;
+            return false;
+        return str;
+    }
+
+    /**
      * Parse package
      * @param iter {Iterator}
      * @returns {string[]|false}
      */
     readPackage(iter) {
         const pkg = [];
-        while (true) {
-            const char = iter.peek();
-            if (char === false) return false;
-            if (this.isAlphaNumeric(char)) {
-                const word = this.readWord();
-                if (word === false) return false;
-                pkg.push(word);
-            } else if (char === '.') {
-                iter.next();
-                if (!this.skipWhitespace(iter))
-                    return false;
-                continue;
-            } else if (char === ';') {
-                iter.next();
-                if (!this.skipWhitespace(iter))
-                    return false;
-                break;
-            } else if (this.isWhitespace(char)) {
-                if (!this.skipWhitespace(iter))
-                    return false;
-            } else {
-                throw new Error(`Invalid character: '${char}'`);
-            }
-        }
+        const str = this.readUntil(';', iter, false);
+        if (str === false) return false;
+        if (!iter.next()) // Skip ;
+            return false;
+        str.split('.').forEach(s =>
+            pkg.push(s.trim())
+        );
         return pkg;
     }
 
