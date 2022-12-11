@@ -1,0 +1,3 @@
+class JavaSourceFunctionReader extends JavacUtils {
+
+}
