@@ -14,7 +14,8 @@ async function compileJavaSourceFile(fileName) {
 
     const sourceReader = new JavaSourceReader(fileName, text, iter);
     sourceReader.parseSourceCode().then(json => {
-        console.log(JSON.stringify(json, null, 4))
+        console.log(json)
+        // console.log(JSON.stringify(json, null, 4))
     }).catch(error => {
         console.error(error)
     });
