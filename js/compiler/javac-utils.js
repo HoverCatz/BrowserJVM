@@ -329,7 +329,8 @@ class JavacUtils {
     detectNextItem(text, iter) {
         if (!this.skipWhitespace(iter))
             return false;
-        const [ index, first ] = this.indexOfFirst([';', '=', '(', '@'], iter);
+        const [ index, first ] = this.indexOfFirst([';', '=', '(', '@', '{'], iter);
+        console.log(index, first)
         if (index === false || index === -1)
             return [ -1, false ];
         switch (first) {
@@ -337,6 +338,7 @@ class JavacUtils {
             case '=': return [ index, ClassItemType.Field ];
             case '(': return [ index, ClassItemType.Function ];
             case '@': return [ index, ClassItemType.Annotation ];
+            case '{': return [ index, ClassItemType.Class ];
         }
         return [ -2 - index, first ];
         // throw new Error(`Unknown type '${first}' at index ${index}.`);
