@@ -6,8 +6,11 @@ class JavaSourceFieldReader extends JavacUtils {
     /** @type string */
     fieldType;
 
+    /** @type string */
+    fieldName;
+
     /** @type any */
-    fieldValue;
+    fieldValue = undefined;
 
     /**
      * @param text {string}
@@ -32,7 +35,7 @@ class JavaSourceFieldReader extends JavacUtils {
         if (innerIndex === false)
             return false;
 
-        return innerIndex + index;
+        return innerIndex + index + 1;
     }
 
     readFieldNoValue(iter) {
@@ -53,7 +56,7 @@ class JavaSourceFieldReader extends JavacUtils {
         iter.setBookmark(0);
 
         // Check field access
-        let fieldAccess = this.readAccessFlags(iter);
+        const fieldAccess = this.readAccessFlags(iter);
         if (fieldAccess === false) return false;
         console.log(`accessFlags: ${this.accessFlagsToString(fieldAccess)}`)
 
@@ -67,54 +70,84 @@ class JavaSourceFieldReader extends JavacUtils {
         if (fieldName === false) return false;
         console.log(`fieldName: ${fieldName}`)
 
-        return iter.index();
+        this.fieldAccess = fieldAccess;
+        this.fieldType = fieldType;
+        this.fieldName = fieldName;
+
+        return index;
     }
 
     readField(iter) {
 
-        return iter.index();
+        const index = this.indexOf('=');
+        if (index === false) return false;
+        console.log(`index: '${index}'`)
+
+        // We need to find this symbol ';', which is not inside any brackets '{}, (), []'
+        const found = this.indexOfFirstOutsideBracketsSkipComments([';'], iter);
+        if (found === false) return false;
+        console.log(`found: '${found}'`)
+
+        // Extract access flags, type and name
+        let sub = this.text.substring(0, index);
+        sub = this.getTextWithoutComments(sub).trim();
+        console.log(`sub: '${sub}'`)
+
+        iter = new Iterator(sub + ';');
+        iter.setBookmark(0);
+
+        // Check field access
+        const fieldAccess = this.readAccessFlags(iter);
+        if (fieldAccess === false) return false;
+        console.log(`accessFlags: ${this.accessFlagsToString(fieldAccess)}`)
+
+        // Check field-type
+        const fieldType = this.readWord(iter);
+        if (fieldType === false) return false;
+        console.log(`fieldType: ${fieldType}`)
+
+        // Check field-name
+        const fieldName = this.readWord(iter);
+        if (fieldName === false) return false;
+        console.log(`fieldName: ${fieldName}`)
+
+        // '+ 1' to skip the equals sign '='
+        let fieldValue = this.text.substring(index + 1, found);
+        fieldValue = this.getTextWithoutComments(fieldValue).trim();
+        console.log(`fieldValue: '${fieldValue}'`)
+
+        this.fieldAccess = fieldAccess;
+        this.fieldType = fieldType;
+        this.fieldName = fieldName;
+        this.fieldValue = fieldValue;
+
+        return found;
     }
 
-    readAccessFlags(iter) {
-        let fieldAccess = 0;
-        let word = this.readWord(iter);
-        if (word === false) return false;
-        if (word in this.accessWords) {
-            console.log(`fieldAccess: ${word}`)
-            fieldAccess |= this.accessWords[word];
+    /**
+     * Find first index from multiple characters,
+     * outside all brackets '{}, (), []', while skipping comments
+     * @param chars {string[]}
+     * @param iter {Iterator}
+     * @param num {int}
+     * @returns {int|false}
+     */
+    indexOfFirstOutsideBracketsSkipComments(chars, iter, num = 1) {
+        iter.setBookmark(num);
 
-            // Set bookmark so we can return later if needed
-            iter.setBookmark(0);
+        const [ index, first ] = this.indexOfFirstSkipComments(['{', '(', '['].concat(chars), iter);
 
-            // Check field access again!
-            word = this.readWord(iter);
-            if (word === false) return false;
-            if (word in this.accessWords) {
-                console.log(`fieldAccess: ${word}`)
-                fieldAccess |= this.accessWords[word];
+        iter.gotoBookmark(num);
 
-                // Set bookmark so we can return later if needed
-                iter.setBookmark(0);
+        // We found ';' (etc) first!
+        if (chars.includes(first))
+            return index;
 
-                // Check field access again-again!
-                word = this.readWord(iter);
-                if (word === false) return false;
-                if (word in this.accessWords) {
-                    console.log(`fieldAccess: ${word}`)
-                    fieldAccess |= this.accessWords[word];
-                } else {
-                    // Reset iter index, because we didn't find another access flag
-                    iter.gotoBookmark(0);
-                }
-            } else {
-                // Reset iter index, because we didn't find another access flag
-                iter.gotoBookmark(0);
-            }
-        } else {
-            // Reset iter index, because we didn't find any access flags
-            iter.gotoBookmark(0);
-        }
-        return fieldAccess;
+        // Skip until after the closing character
+        this.skipUntilClosingChar(first, iter);
+
+        // Recursive function until the next ';' (etc)
+        return this.indexOfFirstOutsideBracketsSkipComments(chars, iter, num + 1);
     }
 
 }
