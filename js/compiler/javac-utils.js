@@ -57,7 +57,8 @@ class JavacUtils {
      * @returns {boolean}
      */
     isAlphaNumeric(char) {
-        return /[a-zA-Z0-9]/.test(char);
+        // return /[a-zA-Z0-9]/.test(char);
+        return /\w/.test(char);
     }
 
     /**
@@ -70,20 +71,24 @@ class JavacUtils {
     }
 
     indexOf(char, iter = null) {
-        iter = (iter === null ? this.iter : iter);
-        const index = iter.index();
-        while (true) {
-            const peek = iter.peek();
-            if (!peek) {
-                this.done = true;
-                return false;
-            }
-            iter.next();
-            if (peek === char)
-                return iter.index();
-        }
-        iter.setIndex(index);
-        return -1;
+        const res = this.indexOfFirstSkipComments([char], iter);
+        if (res === false) return false;
+        const [ index, _ ] = res;
+        return index;
+        // iter = (iter === null ? this.iter : iter);
+        // const index = iter.index();
+        // while (true) {
+        //     const peek = iter.peek();
+        //     if (!peek) {
+        //         this.done = true;
+        //         return false;
+        //     }
+        //     iter.next();
+        //     if (peek === char)
+        //         return iter.index();
+        // }
+        // iter.setIndex(index);
+        // return -1;
     }
 
     indexOfFirstSkipComments(chars, iter = null) {
@@ -96,7 +101,6 @@ class JavacUtils {
         let inComment1 = false;
         // Are we inside a multi-line comment? /*
         let inComment2 = false;
-        const index = iter.index();
         while (true) {
             const char = iter.next();
             if (!char)
@@ -345,10 +349,12 @@ class JavacUtils {
     }
 
     /**
+     * Extract text, excluding comments
      * @param text {string}
+     * @param includeText {boolean}
      * @returns {string}
      */
-    getTextWithoutComments(text) {
+    getTextWithoutComments(text, includeText = true) {
         // Are we inside a string? ""
         let inString = false;
         // Keep track of string backslashes
@@ -378,6 +384,8 @@ class JavacUtils {
                 } else {
                     inStringBackslash = 0;
                 }
+                if (includeText)
+                    output += char;
                 continue;
             }
 
@@ -407,6 +415,8 @@ class JavacUtils {
 
             if (char === '"') {
                 inString = true;
+                if (includeText)
+                    output += char;
                 continue;
             }
 
@@ -416,11 +426,93 @@ class JavacUtils {
     }
 
     /**
+     * Skip until we find the next closing character:
+     * ( -> ), { -> }, [ -> ]
+     * @param c {string}
+     * @param iter {Iterator}
+     */
+    skipUntilClosingChar(c, iter = null) {
+        iter = (iter === null ? this.iter : iter);
+        // Keep track of opening/closings
+        let count = 0;
+        // Set the closing char
+        let findClosing = (c === '(' ? ')' : (c === '{' ? '}' : (c === '[' ? ']' : false)));
+        if (findClosing === false)
+            throw new Error(`Invalid opening character: '${c}'`);
+        // Are we inside a string? ""
+        let inString = false;
+        // Keep track of string backslashes
+        let inStringBackslash = 0;
+        // Are we inside a normal comment? //
+        let inComment1 = false;
+        // Are we inside a multi-line comment? /*
+        let inComment2 = false;
+        while (true) {
+            const char = iter.next();
+            if (!char)
+                break;
+
+            if (inString) {
+                // Detect escaping
+                if (char === '\\') {
+                    inStringBackslash++;
+                    if (inStringBackslash === 2) // Reset escape!
+                        inStringBackslash = 0;
+                } else if (char === '"' && inStringBackslash === 0) {
+                    inString = false;
+                    inStringBackslash = 0;
+                } else {
+                    inStringBackslash = 0;
+                }
+                continue;
+            }
+
+            if (char === '/' && !inComment1 && iter.peek() === '/') {
+                inComment1 = true;
+                iter.next(); // Skip /
+                continue;
+            } else if (inComment1) {
+                if (char === '\n') {
+                    inComment1 = false;
+                }
+                continue;
+            }
+
+            if (char === '/' && !inComment2 && iter.peek() === '*') {
+                inComment2 = true;
+                iter.next(); // Skip *
+                continue;
+            } else if (inComment2) {
+                if (char === '*' && iter.peek() === '/') {
+                    inComment2 = false;
+                    iter.next(); // Skip last /
+                }
+                continue;
+            }
+
+            if (char === '"') {
+                inString = true;
+                continue;
+            }
+
+            if (char === c)
+                count++;
+            else if (char == findClosing) {
+                count--;
+                if (count === 0) {
+                    // TODO: Is this needed?
+                    // iter.next(); // Skip last closing character
+                    break;
+                }
+            }
+        }
+    }
+
+    /**
      * @param text {string}
-     * @param index {int}
      * @returns {(number|string)[]}
      */
-    findOpenCloseRangeAllBrackets(text, index) {
+    findOpenCloseRangeAllBrackets(text) {
         let countA = 0; // {
         let countB = 0; // (
         let countC = 0; // [
@@ -486,21 +578,21 @@ class JavacUtils {
 
             let allZero = (countA === 0 && countB === 0 && countC === 0);
             if (char === '{') {
-                if (allZero) startIndex = iter.index();
+                if (allZero) startIndex = iter.index() + 1;
                 countA++;
             } else if (char === '}') {
                 countA--;
             }
 
             else if (char === '(') {
-                if (allZero) startIndex = iter.index();
+                if (allZero) startIndex = iter.index() + 1;
                 countB++;
             } else if (char === ')') {
                 countB--;
             }
 
             else if (char === '[') {
-                if (allZero) startIndex = iter.index();
+                if (allZero) startIndex = iter.index() + 1;
                 countC++;
             } else if (char === ']') {
                 countC--;
@@ -528,7 +620,7 @@ class JavacUtils {
      */
     findOpenCloseRange(text, index, open = false, close = false) {
         if (!open && !close)
-            return this.findOpenCloseRangeAllBrackets(text, index);
+            return this.findOpenCloseRangeAllBrackets(text.substring(index));
         let openIndex = index;
         let closeIndex = index;
         // Keep track of open/closing
@@ -607,28 +699,53 @@ class JavacUtils {
         return [ openIndex, closeIndex, text.substring(openIndex, closeIndex) ];
     }
 
-    accessFlagsToString(access) {
+    /**
+     * Read access flags
+     * @param iter {Iterator}
+     * @returns {boolean|number}
+     */
+    readAccessFlags(iter) {
+        let fieldAccess = 0;
+        while (true) {
+            const word = this.peekWord(iter);
+            if (word === false) return false;
+            if (word in this.accessWords) {
+                fieldAccess |= this.accessWords[word];
+                this.readWord(iter);
+            } else {
+                break;
+            }
+        }
+        return fieldAccess;
+    }
+
+    /**
+     * Convert accessFlags (int) to readable string
+     * @param accessFlags {int}
+     * @returns {string}
+     */
+    accessFlagsToString(accessFlags) {
         const strings = [];
 
-        if ((Opcodes.ACC_PUBLIC & access) != 0x0)
+        if ((Opcodes.ACC_PUBLIC & accessFlags) != 0x0)
             strings.push('public');
         else
-        if ((Opcodes.ACC_PRIVATE & access) != 0x0)
+        if ((Opcodes.ACC_PRIVATE & accessFlags) != 0x0)
             strings.push('private');
         else
-        if ((Opcodes.ACC_PROTECTED & access) != 0x0)
+        if ((Opcodes.ACC_PROTECTED & accessFlags) != 0x0)
             strings.push('protected');
 
-        if ((Opcodes.ACC_STATIC & access) != 0x0)
+        if ((Opcodes.ACC_STATIC & accessFlags) != 0x0)
             strings.push('static');
 
-        if ((Opcodes.ACC_FINAL & access) != 0x0)
+        if ((Opcodes.ACC_FINAL & accessFlags) != 0x0)
             strings.push('final');
 
-        if ((Opcodes.ACC_ABSTRACT & access) != 0x0)
+        if ((Opcodes.ACC_ABSTRACT & accessFlags) != 0x0)
             strings.push('abstract');
 
-        if ((Opcodes.ACC_DEPRECATED & access) != 0x0)
+        if ((Opcodes.ACC_DEPRECATED & accessFlags) != 0x0)
             strings.push('deprecated');
 
         return strings.join(' ');
@@ -642,6 +759,7 @@ class ClassItemType {
     static FieldNoValue = 'field_no_value';
     static Function = 'function';
     static Annotation = 'annotation';
+    static Class = 'class';
 
 }
 
@@ -686,7 +804,7 @@ class Iterator {
     }
 
     /**
-     * Get the current character
+     * Get the current (last accessed) character
      * @returns {string}
      */
     char() {
