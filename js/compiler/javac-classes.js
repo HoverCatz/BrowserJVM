@@ -6,11 +6,20 @@ class JavaSourceReader extends JavacUtils {
     /** @type JvmClass */
     clz;
 
-    /** @type JavaSourceFieldReader */
-    fieldReader;
+    /** @type [] */
+    fields;
 
-    /** @type JavaSourceFunctionReader */
-    functionReader;
+    /** @type [] */
+    functions;
+
+    /** @type int */
+    classAccess;
+
+    /** @type string */
+    classType;
+
+    /** @type string */
+    className;
 
     /**
      * The text for the whole class (includes everything)
@@ -18,20 +27,31 @@ class JavaSourceReader extends JavacUtils {
      * */
     classText;
 
-    constructor(fileName, text, iter) {
+    /**
+     * All inner classes
+     * @type JavaSourceReader[]
+     * */
+    innerClasses;
+
+    /** @type boolean */
+    ignoreEndGarbage;
+
+    constructor(fileName, text, iter, ignoreEndGarbage = false) {
         super();
         this.fileName = fileName;
         this.text = text;
         this.iter = iter;
         this.clz = new JvmClass();
-        this.fieldReader = new JavaSourceFieldReader();
-        this.functionReader = new JavaSourceFunctionReader();
+        this.fields = [];
+        this.functions = [];
+        this.innerClasses = [];
+        this.ignoreEndGarbage = ignoreEndGarbage;
     }
 
     /**
      * Parse
      * @param throwErrors {boolean}
-     * @returns {Promise<{}|json>|boolean}
+     * @returns {string|json|Promise<{}|json>|boolean}
      * @throws {Error}
      */
     async parseSourceCode(throwErrors = true) {
@@ -62,33 +82,7 @@ class JavaSourceReader extends JavacUtils {
 
         // Read annotations
         const annotationData = this.readAnnotations(iter);
-        // while (true) {
-        //     let char = iter.peek();
-        //     if (char === false) return false;
-        //     if (char === '@') {
-        //         const anno = this.readAnnotation(iter);
-        //         if (anno === false)
-        //             return false;
-        //
-        //         // if we have annotationData, set index at end of data
-        //         if (typeof anno.data === 'object')
-        //             iter.setIndex(anno.data.close);
-        //
-        //         // Add annotation to the annotation list
-        //         annotationData.push(...[anno]);
-        //
-        //         console.log(`annotationData: '${anno.annoClassName.join('.')}, hasData: ${typeof anno.data === 'object'}'`)
-        //
-        //         // Reach next annotation (if any)
-        //         if (!this.skipWhitespace(iter))
-        //             return false;
-        //
-        //         break;
-        //     } else {
-        //         break;
-        //     }
-        // }
-        console.log('annotationData:', annotationData)
+        console.log('[' + this.className + '] annotationData:', annotationData)
 
         // Reach the class
         if (!this.skipWhitespace(iter))
@@ -138,6 +132,7 @@ class JavaSourceReader extends JavacUtils {
             iter.gotoBookmark(0);
         }
         console.log(`accessFlags: ${this.accessFlagsToString(classAccess)}`)
+        this.classAccess = classAccess;
 
         // Check class-type
         const classType = this.readWord(iter);
@@ -147,11 +142,13 @@ class JavaSourceReader extends JavacUtils {
             if (throwErrors) throw new Error(`Class-type '${classType}' not supported.`);
             return false;
         }
+        this.classType = classType;
 
         // Read class-name
         const className = this.readWord(iter);
         if (className === false) return false;
         console.log(`className: ${className}`) // className
+        this.className = className;
 
         // Extract class data
         const [ ignored, blockEnd, classBlock ] = this.findOpenCloseRange(this.text, iter.index(), '{', '}');
@@ -160,7 +157,7 @@ class JavaSourceReader extends JavacUtils {
         const lastText = this.text.substring(blockEnd + 1);
         const lastTextBlock = this.getTextWithoutComments(lastText).trim();
 
-        if (lastTextBlock.length > 0) {
+        if (!this.ignoreEndGarbage && lastTextBlock.length > 0) {
             if (throwErrors) throw new Error('Garbage-data at end of class.');
             return false;
         }
@@ -168,7 +165,7 @@ class JavaSourceReader extends JavacUtils {
         this.classText = this.text;
         this.text = classBlock;
         this.iter = new Iterator(classBlock);
-        const classData = this.parseClassData(classBlock, this.iter);
+        const classData = await this.parseClassData(classBlock, this.iter);
         if (classData === false) return false;
 
         return {
@@ -187,11 +184,12 @@ class JavaSourceReader extends JavacUtils {
      * @param iter {Iterator}
      * @returns {{}|json|false}
      */
-    parseClassData(text, iter) {
+    async parseClassData(text, iter) {
         if (iter.next() === false)
             return false;
         const fields = {};
         const functions = {};
+        const innerClasses = {};
 
         // Skip whitespace
         if (!this.skipWhitespace(iter))
@@ -202,9 +200,11 @@ class JavaSourceReader extends JavacUtils {
             const iterIndex = iter.index();
             let detectedType = this.detectNextItem(text, iter);
             if (detectedType === false)
-                return false;
+                break;
 
             const [ index, itemType ] = detectedType;
+            console.log('[' + this.className + '] ')
+            console.log('[' + this.className + '] index:', index, 'type:', itemType)
 
             // No detection found
             if (index === -1)
@@ -228,32 +228,56 @@ class JavaSourceReader extends JavacUtils {
                 case ClassItemType.FieldNoValue:
                 case ClassItemType.Field: {
                     const subText = this.text.substring(iterIndex);
-                    const endIndex = this.fieldReader.process(subText, iterIndex, itemType);
+                    const fieldReader = new JavaSourceFieldReader();
+                    const endIndex = fieldReader.process(subText, iterIndex, itemType);
                     if (endIndex === false)
                         return false;
                     iter.setIndex(endIndex);
-                    // TODO: Remove
-                    return false;
+                    this.skipWhitespace(iter);
+                    this.fields.push(fieldReader);
                 } break;
                 case ClassItemType.Function: {
+                    const subText = this.text.substring(iterIndex);
+                    const functionReader = new JavaSourceFunctionReader();
+                    const endIndex = functionReader.process(subText, iterIndex, itemType);
+                    if (endIndex === false)
+                        return false;
+                    iter.setIndex(endIndex);
+                    this.skipWhitespace(iter);
+                    this.functions.push(functionReader);
+                } break;
+                case ClassItemType.Class: {
+                    let subText = this.text.substring(iterIndex);
+                    const [ , close, ] = this.findOpenCloseRange(subText, 0, '{', '}');
+                    subText = subText.substring(0, close) + '}';
 
-                    // TODO: Remove
-                    return false;
+                    const sourceReader = new JavaSourceReader(this.fileName, subText, new Iterator(subText), true);
+                    const code = await sourceReader.parseSourceCode();
+
+                    sourceReader.iter = null;
+                    sourceReader.alphaNumericArray = null;
+                    sourceReader.alphaNumericAnnotationArray = null;
+                    sourceReader.fieldReader = null;
+                    sourceReader.functionReader = null;
+                    innerClasses[sourceReader.className] = [sourceReader, code];
+
+                    const endIndex = iterIndex + close;
+                    iter.setIndex(endIndex);
+                    this.skipWhitespace(iter);
                 } break;
             }
 
             // Skip whitespace
-            if (!this.skipWhitespace(iter))
-                return false;
+            this.skipWhitespace(iter);
         }
 
         // Skip whitespace
-        if (!this.skipWhitespace(iter))
-            return false;
+        this.skipWhitespace(iter);
 
         return {
             'fields': fields,
-            'functions': functions
+            'functions': functions,
+            'innerClasses': innerClasses
         };
     }
 
