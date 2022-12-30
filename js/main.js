@@ -14,6 +14,7 @@
         '102': 'testing/src/compilertesting/functions/CompilerTestV102.java',
         '103': 'testing/src/compilertesting/functions/CompilerTestV103.java',
         '104': 'testing/src/compilertesting/functions/CompilerTestV104.java',
+        '105': 'testing/src/compilertesting/functions/CompilerTestV105.java',
 
         'test': 'testing/src/compilertesting/Test.java',
 
@@ -23,9 +24,17 @@
         'anno3': 'testing/src/compilertesting/annotations/CompilerTestV1003.java',
         'anno4': 'testing/src/compilertesting/annotations/CompilerTestV1004.java',
         'anno5': 'testing/src/compilertesting/annotations/CompilerTestV1005.java',
+
+        'inner1': 'testing/src/compilertesting/innerclasses/CompilerTestV110.java',
+        'inner2': 'testing/src/compilertesting/innerclasses/CompilerTestV111.java',
+        'inner3': 'testing/src/compilertesting/innerclasses/CompilerTestV112.java',
+        'inner4': 'testing/src/compilertesting/innerclasses/CompilerTestV113.java',
     };
-    const selectedFile = 'anno5';
+    const selectedFile = '1';
     await compileJavaSourceFile(files[selectedFile]);
+
+    // let n = 9223372036854775807;
+    // console.log(n)
 
     // readClassFile('out/production/BrowserJVM/asmtesting/v1/TestV1.class').then(clz => {
     //     console.log('class loaded:', clz)
