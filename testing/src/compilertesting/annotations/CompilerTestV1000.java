@@ -1,18 +1,21 @@
+// @;=({
 package compilertesting.annotations;
 
 import java.util.Random;
 
 @TestAnnotation1(
     abc = 123,
-    def = "hello",
+    def = "meow",
     ghi = {"hello", "world"},
     inner = @TestAnnotation1.TestInnerAnnotation1(
         abc = 456,
-        def = "world",
-        ghi = {"world", "meow } { // /* )))"}
+        def = "abc",
+        ghi = {"def", "ghi } { // /* )))\""},
+        jkl = '{'
     )
 )
 @TestAnnotation2.TestInnerAnnotation2(abc = 789)
+@TestAnnotation2.TestInnerAnnotation3
 public class CompilerTestV1000 {
 
     // Simple field
@@ -72,3 +75,4 @@ public class CompilerTestV1000 {
     }
 
 }
+// hei

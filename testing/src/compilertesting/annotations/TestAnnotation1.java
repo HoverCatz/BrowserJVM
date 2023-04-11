@@ -19,5 +19,6 @@ public @interface TestAnnotation1 {
         int abc() default 123;
         String def() default "hello";
         String[] ghi() default {"hello", "world"};
+        char jkl() default 'a';
     }
 }

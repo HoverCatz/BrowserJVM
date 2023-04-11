@@ -1,5 +1,75 @@
 // New attempt
+
+
+const indexes = async function (minimized = true) {
+    const text = await (await fetch(
+        `java.7.indexes${minimized ? '' : '.pretty'}.json`)).text();
+    const json = JSON.parse(text);
+    const classes = json["classes"];
+    const classesPackages = json["classesPackages"];
+    const pkgQuick = json["pkgQuick"];
+    const clzQuick = json["clzQuick"];
+    const obj = {
+        'json': json,
+        'classes': classes,
+        'classesPackages': classesPackages,
+        'pkgQuick': pkgQuick,
+        'clzQuick': clzQuick
+    };
+    obj.findClassByName = (function (name) {
+        const results = [];
+        const pkgs = classesPackages[name];
+        if (typeof pkgs === 'object') {
+            for (let i in pkgs) {
+                let pkg = pkgs[i];
+                if (typeof pkg === 'string')
+                    results.push(this.findClassByPkgAndName(pkg + '.' + name));
+                else if (typeof pkg === 'number')
+                    results.push(this.findClassByPkgAndName(pkgQuick[pkg] + '.' + name));
+            }
+        } else {
+            if (typeof pkgs === 'string')
+                results.push(this.findClassByPkgAndName(pkgs + '.' + name));
+            else if (typeof pkgs === 'number')
+                results.push(this.findClassByPkgAndName(pkgQuick[pkgs] + '.' + name));
+        }
+        return results;
+    });
+    obj.findClassByPkgAndName = (function (name) {
+        if (!name.includes('.'))
+            return classes[name];
+        const split = name.split('.');
+        if (split.length === 1)
+            return classes[split[0]];
+        let i = 1, part = classes[split[0]];
+        for (; i < split.length - 1; i++)
+            part = part[split[i]];
+        return part[split[i]];
+    });
+    obj.getClassByIndex = (function (index) {
+        return clzQuick[index];
+    });
+    return obj;
+};
+
 (async () => {
+
+    const results
+        = await indexes(false);
+    // const itzs = results.findClassByPkgAndName('java.io.File').interfaces;
+    // for (let i = 0; i < itzs.length; i++) {
+    //     const itz = itzs[i];
+    //     console.log(results.getClassByIndex(itz))
+    // }
+
+    // const test = function*() {
+    //     yield '';
+    // }
+    // for (let string of test()) {
+    //     console.log(string)
+    // }
+    //
+    // return;
 
     const files = {
         '1': 'testing/src/compilertesting/fields/CompilerTestV1.java',
@@ -21,17 +91,76 @@
         'anno0': 'testing/src/compilertesting/annotations/CompilerTestV1000.java',
         'anno1': 'testing/src/compilertesting/annotations/CompilerTestV1001.java',
         'anno2': 'testing/src/compilertesting/annotations/CompilerTestV1002.java',
-        'anno3': 'testing/src/compilertesting/annotations/CompilerTestV1003.java',
-        'anno4': 'testing/src/compilertesting/annotations/CompilerTestV1004.java',
+        'anno3': 'testing/src/compilertesting/annotations/CompilerTestV1003.java.bin',
+        'anno4': 'testing/src/compilertesting/annotations/CompilerTestV1004.java.bin',
         'anno5': 'testing/src/compilertesting/annotations/CompilerTestV1005.java',
 
         'inner1': 'testing/src/compilertesting/innerclasses/CompilerTestV110.java',
         'inner2': 'testing/src/compilertesting/innerclasses/CompilerTestV111.java',
         'inner3': 'testing/src/compilertesting/innerclasses/CompilerTestV112.java',
         'inner4': 'testing/src/compilertesting/innerclasses/CompilerTestV113.java',
+
+        'fakeConstructor1': 'testing/src/compilertesting/functions/CompilerTestConstructorV10000.java',
+        'fakeConstructor2': 'testing/src/compilertesting/functions/CompilerTestConstructorV10001.java',
+        'fakeConstructor3': 'testing/src/compilertesting/functions/CompilerTestConstructorV10002.java',
+        'fakeConstructor4': 'testing/src/compilertesting/functions/CompilerTestConstructorV10003.java',
+        'fakeConstructor5': 'testing/src/compilertesting/functions/CompilerTestConstructorV10004.java',
+
+        'everything': 'testing/src/compilertesting/everything/CompilerTestV210.java',
+        'empty': 'testing/src/compilertesting/everything/CompilerTestV211.java',
+        'generics1': 'testing/src/compilertesting/everything/CompilerTestV212.java',
+        'generics2': 'testing/src/compilertesting/everything/CompilerTestV213.java',
+        'generics3': 'testing/src/compilertesting/everything/CompilerTestV214.java',
+
+        'java.lang.String': 'testing/java.7/java/lang/String.java',
+        'java.lang.Object': 'testing/java.7/java/lang/Object.java',
+        'java.lang.Integer': 'testing/java.7/java/lang/Integer.java',
+        'java.StringEditor': 'testing/java.7/com/sun/beans/editors/StringEditor.java',
+
+        'error1': 'testing/src/java7srclisting/errors/ErrorV1.java',
+        'error2': 'testing/src/java7srclisting/errors/ErrorV2.java',
+        'error3': 'testing/src/java7srclisting/errors/ErrorV3.java',
+        'error4': 'testing/src/java7srclisting/errors/ErrorV4.java',
+        'error5': 'testing/src/java7srclisting/errors/ErrorV5.java',
+        'error6': 'testing/src/java7srclisting/errors/ErrorV6.java',
+        'error7': 'testing/src/java7srclisting/errors/ErrorV7.java',
+        'error8': 'testing/src/java7srclisting/errors/ErrorV8.java',
+        'error9': 'testing/src/java7srclisting/errors/ErrorV9.java',
+        'error10': 'testing/src/java7srclisting/errors/ErrorV10.java',
+        'error11': 'testing/src/java7srclisting/errors/ErrorV11.java',
+        'error12': 'testing/src/java7srclisting/errors/ErrorV12.java',
+        'error13': 'testing/src/java7srclisting/errors/ErrorV13.java',
+        'error14': 'testing/src/java7srclisting/errors/ErrorV14.java',
+
+        'java7source': 'java7source'
     };
-    const selectedFile = '1';
-    await compileJavaSourceFile(files[selectedFile]);
+    const selectedFile = 'error14';
+    const start = Date.now();
+    const classes = [];
+    if (selectedFile === 'java7source')
+        for (let url of java7source)
+            classes.push(await compileJavaSourceFile(url));
+    else
+        classes.push(await compileJavaSourceFile(files[selectedFile]));
+    const end = Date.now();
+    console.log(`Execution time: ${end - start} ms`);
+
+    console.log(`maxFields: ${maxFields}, classMaxField: ${classMaxField}`)
+    console.log(`maxFunctions: ${maxFunctions}, classMaxField: ${classMaxFunctions}`)
+    // TODO: Verify every single class:
+    //       1. package
+    //       2. annotations
+    //       3. class header (access, type, name, extends, implements, generics)
+    //       4. class data:
+    //          a. fields: annotations, access, type, name
+    //          b. functions: annotations, access, type, name, arguments
+    //          c. innerClasses: annotations, access, type, name, extends, implements, generics
+    for (let i = 0; i < classes.length; i++) {
+        const obj = classes[i];
+        console.log(obj)
+    }
+
+    // results.findClassByPkgAndName('java.io.File')
 
     // let n = 9223372036854775807;
     // console.log(n)

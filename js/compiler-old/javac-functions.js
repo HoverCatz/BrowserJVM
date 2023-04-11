@@ -38,6 +38,7 @@ class JavaSourceFunctionReader extends JavacUtils {
         this.functionAccess = accessFlags;
 
         // TODO: Read return type (if any, might be a constructor)
+
     }
 
     /**

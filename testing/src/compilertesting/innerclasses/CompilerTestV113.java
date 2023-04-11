@@ -1,11 +1,13 @@
 package compilertesting.innerclasses;
 
+import static java.lang.System.out;
+
 public class CompilerTestV113 {
 
     int abc = 1;
 
     void first() {
-        System.out.println("first");
+        out.println("first");
     }
 
     static class InnerClass1 {

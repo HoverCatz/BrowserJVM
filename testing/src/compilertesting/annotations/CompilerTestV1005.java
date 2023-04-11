@@ -4,7 +4,7 @@ package compilertesting.annotations;
 @ TestAnnotation2.TestInnerAnnotation2 ( abc = 22 )
 @   TestAnnotation3  .
         TestInnerAnnotation3 ( abc = 33 )
-public class CompilerTestV1005 {
+public class CompilerTestV1005 extends Object {
 
     @
             TestAnnotation1.

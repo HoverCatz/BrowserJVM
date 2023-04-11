@@ -54,7 +54,7 @@ class JavaSourceReader extends JavacUtils {
      * @returns {string|json|Promise<{}|json>|boolean}
      * @throws {Error}
      */
-    async parseSourceCode(throwErrors = true) {
+    async parseSourceCode_(throwErrors = true) {
         const iter = this.iter;
 
         // Read package
@@ -82,10 +82,13 @@ class JavaSourceReader extends JavacUtils {
 
         // Read annotations
         const annotationData = this.readAnnotations(iter);
-        console.log('[' + this.className + '] annotationData:', annotationData)
+        if (typeof this.className === 'undefined')
+            console.log('annotationData:', annotationData)
+        else
+            console.log('[' + this.className + '] annotationData:', annotationData)
 
         // Reach the class
-        if (!this.skipWhitespace(iter))
+        if (!this.skipWhitespace_(iter))
             return false;
 
         // Set bookmark so we can return later if needed
@@ -192,13 +195,17 @@ class JavaSourceReader extends JavacUtils {
         const innerClasses = {};
 
         // Skip whitespace
-        if (!this.skipWhitespace(iter))
-            return false;
+        if (!this.skipWhitespace_(iter))
+            return {
+                'fields': fields,
+                'functions': functions,
+                'innerClasses': innerClasses
+            };
 
         let annotations = [];
         while (true) {
             const iterIndex = iter.index();
-            let detectedType = this.detectNextItem(text, iter);
+            let detectedType = this.detectNextItem_(text, iter);
             if (detectedType === false)
                 break;
 
@@ -233,8 +240,18 @@ class JavaSourceReader extends JavacUtils {
                     if (endIndex === false)
                         return false;
                     iter.setIndex(endIndex);
-                    this.skipWhitespace(iter);
-                    this.fields.push(fieldReader);
+                    this.skipWhitespace_(iter);
+                    delete fieldReader.text;
+                    delete fieldReader.iter;
+                    delete fieldReader.done;
+                    delete fieldReader.classTypes;
+                    delete fieldReader.accessWords;
+                    delete fieldReader.annotationArray;
+                    delete fieldReader.alphaNumericArray;
+                    delete fieldReader.alphaNumericAnnotationArray;
+                    delete fieldReader.fieldReader;
+                    delete fieldReader.functionReader;
+                    fields[fieldReader.fieldName] = fieldReader;
                 } break;
                 case ClassItemType.Function: {
                     const subText = this.text.substring(iterIndex);
@@ -243,8 +260,18 @@ class JavaSourceReader extends JavacUtils {
                     if (endIndex === false)
                         return false;
                     iter.setIndex(endIndex);
-                    this.skipWhitespace(iter);
-                    this.functions.push(functionReader);
+                    this.skipWhitespace_(iter);
+                    delete functionReader.text;
+                    delete functionReader.iter;
+                    delete functionReader.done;
+                    delete functionReader.classTypes;
+                    delete functionReader.accessWords;
+                    delete functionReader.annotationArray;
+                    delete functionReader.alphaNumericArray;
+                    delete functionReader.alphaNumericAnnotationArray;
+                    delete functionReader.fieldReader;
+                    delete functionReader.functionReader;
+                    functions[functionReader.functionName] = functionReader;
                 } break;
                 case ClassItemType.Class: {
                     let subText = this.text.substring(iterIndex);
@@ -252,27 +279,27 @@ class JavaSourceReader extends JavacUtils {
                     subText = subText.substring(0, close) + '}';
 
                     const sourceReader = new JavaSourceReader(this.fileName, subText, new Iterator(subText), true);
-                    const code = await sourceReader.parseSourceCode();
+                    const code = await sourceReader.parseSourceCode_();
 
-                    sourceReader.iter = null;
-                    sourceReader.alphaNumericArray = null;
-                    sourceReader.alphaNumericAnnotationArray = null;
+                    delete sourceReader.iter;
+                    delete sourceReader.alphaNumericArray;
+                    delete sourceReader.alphaNumericAnnotationArray;
                     sourceReader.fieldReader = null;
                     sourceReader.functionReader = null;
                     innerClasses[sourceReader.className] = [sourceReader, code];
 
                     const endIndex = iterIndex + close;
                     iter.setIndex(endIndex);
-                    this.skipWhitespace(iter);
+                    this.skipWhitespace_(iter);
                 } break;
             }
 
             // Skip whitespace
-            this.skipWhitespace(iter);
+            this.skipWhitespace_(iter);
         }
 
         // Skip whitespace
-        this.skipWhitespace(iter);
+        this.skipWhitespace_(iter);
 
         return {
             'fields': fields,
@@ -288,7 +315,7 @@ class JavaSourceReader extends JavacUtils {
      */
     readAnnotations(iter) {
         // Skip whitespace in-front
-        if (!this.skipWhitespace(iter))
+        if (!this.skipWhitespace_(iter))
             return false;
         const list = [];
         while (true) {
@@ -305,7 +332,7 @@ class JavaSourceReader extends JavacUtils {
             list.push(anno);
 
             // Skip next whitespace
-            if (!this.skipWhitespace(iter))
+            if (!this.skipWhitespace_(iter))
                 return false;
         }
         return list;

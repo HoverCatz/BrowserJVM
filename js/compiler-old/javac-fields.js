@@ -22,7 +22,7 @@ class JavaSourceFieldReader extends JavacUtils {
         const iter = this.iter = new Iterator(text);
         this.text = text;
 
-        if (!this.skipWhitespace(iter))
+        if (!this.skipWhitespace_(iter))
             return false;
 
         let innerIndex;
@@ -42,7 +42,7 @@ class JavaSourceFieldReader extends JavacUtils {
 
         console.log(`text: '${this.text}'`)
 
-        const [ index, char ] = this.indexOfFirstSkipComments([';'], iter);
+        const [ index, char ] = this.indexOfFirst([';'], iter);
         if (index === -1)
             return false;
 
@@ -135,7 +135,7 @@ class JavaSourceFieldReader extends JavacUtils {
     indexOfFirstOutsideBracketsSkipComments(chars, iter, num = 1) {
         iter.setBookmark(num);
 
-        const [ index, first ] = this.indexOfFirstSkipComments(['{', '(', '['].concat(chars), iter);
+        const [ index, first ] = this.indexOfFirst(['{', '(', '['].concat(chars), iter);
 
         iter.gotoBookmark(num);
 
@@ -144,7 +144,7 @@ class JavaSourceFieldReader extends JavacUtils {
             return index;
 
         // Skip until after the closing character
-        this.skipUntilClosingChar(first, iter);
+        this.skipUntilClosingChar_(first, iter);
 
         // Recursive function until the next ';' (etc)
         return this.indexOfFirstOutsideBracketsSkipComments(chars, iter, num + 1);

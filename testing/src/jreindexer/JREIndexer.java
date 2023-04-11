@@ -13,8 +13,7 @@ import java.io.FileOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
-public class JREIndexer
-{
+public class JREIndexer {
 
     private static final JsonObject root = new JsonObject();
     private static final Map<String, JsonObject> packages = new HashMap<>();
@@ -51,8 +50,7 @@ public class JREIndexer
         }
     }};
 
-    public static void main(String[] args)
-    {
+    public static void main(String[] args) {
         File output = new File("java.7.indexes.json");
         File folder = new File("java.7/");
         try (FileOutputStream fos = new FileOutputStream(output)) {
@@ -198,7 +196,8 @@ public class JREIndexer
 //                pkgQuickIndexes.add(key);
 //                if (++curr == max) break;
             }
-            curr = 0; max = 780; // Figured out that 780 results in the smallest json string
+            curr = 0;
+            max = 780; // Figured out that 780 results in the smallest json string
             for (Map.Entry<String, Integer> entry : sortByComparator(packagesCountV2, false).entrySet()) {
                 String key = entry.getKey();
                 if (curr++ >= max) {
@@ -251,8 +250,7 @@ public class JREIndexer
         }
     }
 
-    private static <T1> Map<T1, Integer> sortByComparator(Map<T1, Integer> unsortMap, final boolean order)
-    {
+    private static <T1> Map<T1, Integer> sortByComparator(Map<T1, Integer> unsortMap, final boolean order) {
         List<Map.Entry<T1, Integer>> list = new LinkedList<>(unsortMap.entrySet());
         Collections.sort(list, new Comparator<Map.Entry<T1, Integer>>() {
             @Override
@@ -267,10 +265,8 @@ public class JREIndexer
         return sortedMap;
     }
 
-    private static void recursive(File file)
-    {
-        if (file.isFile())
-        {
+    private static void recursive(File file) {
+        if (file.isFile()) {
             String name = file.getName();
             if (!name.endsWith(".class"))
                 return;
@@ -286,10 +282,8 @@ public class JREIndexer
 
 //    static Map<Integer, Integer> accessCounts = new HashMap<>();
 
-    private static void processClassFile(File file)
-    {
-        try (FileInputStream fis = new FileInputStream(file))
-        {
+    private static void processClassFile(File file) {
+        try (FileInputStream fis = new FileInputStream(file)) {
             ClassReader reader = new ClassReader(fis);
             ClassNode node = new ClassNode();
             reader.accept(node, ClassReader.SKIP_CODE | ClassReader.SKIP_FRAMES);
@@ -307,7 +301,7 @@ public class JREIndexer
                     obj.addProperty(strAccess, field.access);
                 obj.addProperty(strName, field.name);
                 obj.addProperty(strDesc, extractFieldDesc(field.desc));
-            //    if (field.value != null) obj.addProperty("value", field.value);
+                //    if (field.value != null) obj.addProperty("value", field.value);
                 fields.add(obj);
             }
 
@@ -329,8 +323,7 @@ public class JREIndexer
             String fullName = node.name.replace('/', '.');
             String pkg = null;
             String name = fullName;
-            if (name.contains("."))
-            {
+            if (name.contains(".")) {
                 int index = name.lastIndexOf('.');
                 pkg = name.substring(0, index);
 
@@ -412,8 +405,7 @@ public class JREIndexer
                         arr.add(pkg);
                         classesPackages.add(name, arr);
                     }
-                }
-                else
+                } else
                     classesPackages.add(name, new JsonPrimitive(pkg));
 
 //                System.out.println(name);
@@ -424,9 +416,7 @@ public class JREIndexer
 //                System.out.println();
 //                System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(root));
             }
-        }
-        catch (Throwable t)
-        {
+        } catch (Throwable t) {
             t.printStackTrace();
         }
     }
@@ -441,8 +431,7 @@ public class JREIndexer
     }
     */
 
-    private static String extractFieldDesc(String desc)
-    {
+    private static String extractFieldDesc(String desc) {
         Type type = Type.getType(desc);
         String ret = type.getClassName().replace('/', '.');
         if (classCounts.containsKey(ret))
@@ -452,12 +441,10 @@ public class JREIndexer
         return ret;
     }
 
-    private static JsonArray getArguments(String desc)
-    {
+    private static JsonArray getArguments(String desc) {
         JsonArray arguments = new JsonArray();
         Type[] types = Type.getArgumentTypes(desc);
-        for (Type type : types)
-        {
+        for (Type type : types) {
             String ret = type.getClassName().replace('/', '.');
             if (classCounts.containsKey(ret))
                 classCounts.put(ret, classCounts.get(ret) + 1);
@@ -468,8 +455,7 @@ public class JREIndexer
         return arguments;
     }
 
-    private static String getReturnType(String desc)
-    {
+    private static String getReturnType(String desc) {
         Type type = Type.getReturnType(desc);
         String ret = type.getClassName().replace('/', '.');
         if (ret.equals("void"))

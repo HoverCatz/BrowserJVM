@@ -110,12 +110,12 @@ class JvmFunction {
             } catch (e) {
                 if (e instanceof JvmError) {
                     if (lineNumber >= 0)
-                        console.error(`${e.type.replaceAll('/', '.')}: ${e.message}\n` +
+                        console.error(`${e.type.replaceAll('/', '.')}: ${e.stack}\n` +
                             `\tat ${this.ownerClass.className}.${this.functionName}(${this.ownerClass.className}:${lineNumber})`);
                         // console.error('Error `' + e.message + '` at line #' + lineNumber + ' ' +
                     //     '(instruction index #' + pointer + ', instruction `' + OpcodesReverse[lastOpcode] + '`)');
                     else
-                        console.error(`${e.type.replaceAll('/', '.')}: ${e.message}\n` +
+                        console.error(`${e.type.replaceAll('/', '.')}: ${e.stack}\n` +
                             `\tat ${this.ownerClass.className}.${this.functionName}(${this.ownerClass.className}:?)`);
                     // console.error(e.type.replaceAll('/', '.') + ' `' + e.message + '` at unknown line ' +
                     //     '(instruction index #' + pointer + ', instruction `' + OpcodesReverse[lastOpcode] + '`)');

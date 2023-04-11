@@ -19,4 +19,12 @@ public @interface TestAnnotation2 {
         String def() default "hello";
         String[] ghi() default {"hello", "world"};
     }
+
+    @Target({PACKAGE, TYPE, ANNOTATION_TYPE, METHOD, CONSTRUCTOR, FIELD,
+            LOCAL_VARIABLE, PARAMETER})
+    @interface TestInnerAnnotation3 {
+        int abc() default 123;
+        String def() default "hello";
+        String[] ghi() default {"hello", "world"};
+    }
 }

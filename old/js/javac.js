@@ -83,31 +83,51 @@ let javaSourceCode = `
 
 const iter = function (arr) {
     let cur = -1;
-    arr.next = (function () { return (++cur >= this.length) ? false : this[cur]; });
-    arr.peekNext = (function () { return ((cur + 1) >= this.length) ? false : this[cur + 1] });
-    arr.peekNextNext = (function () { return ((cur + 2) >= this.length) ? false : this[cur + 2] });
-    arr.peekNextN = (function (n) { return ((cur + n) >= this.length) ? false : this[cur + n] });
-    arr.prev = (function () { return (--cur < 0) ? false : this[cur]; });
-    arr.peekPrev = (function () { return (cur - 1) < 0 ? false : this[cur - 1] });
-    arr.peekPrevPrev = (function () { return (cur - 2) < 0 ? false : this[cur - 2] });
-    arr.peekPrevN = (function (n) { return (cur - n) < 0 ? false : this[cur - n] });
-    arr.index = (function() { return cur; });
-    arr.len = (function() { return this.length; });
+    arr.next = (function () {
+        return (++cur >= this.length) ? false : this[cur];
+    });
+    arr.peekNext = (function () {
+        return ((cur + 1) >= this.length) ? false : this[cur + 1]
+    });
+    arr.peekNextNext = (function () {
+        return ((cur + 2) >= this.length) ? false : this[cur + 2]
+    });
+    arr.peekNextN = (function (n) {
+        return ((cur + n) >= this.length) ? false : this[cur + n]
+    });
+    arr.prev = (function () {
+        return (--cur < 0) ? false : this[cur];
+    });
+    arr.peekPrev = (function () {
+        return (cur - 1) < 0 ? false : this[cur - 1]
+    });
+    arr.peekPrevPrev = (function () {
+        return (cur - 2) < 0 ? false : this[cur - 2]
+    });
+    arr.peekPrevN = (function (n) {
+        return (cur - n) < 0 ? false : this[cur - n]
+    });
+    arr.index = (function () {
+        return cur;
+    });
+    arr.len = (function () {
+        return this.length;
+    });
     return arr;
 };
 const JavaClass = function (pkg, className, access, ownerClass, extend, implement) {
-    const clazz = [ ];
+    const clazz = [];
     clazz.package = pkg;
     clazz.className = className;
     clazz.extend = extend;
     clazz.implement = implement;
     clazz.access = access;
     clazz.ownerClass = ownerClass;
-    clazz.fields = { };
-    clazz.functions = { };
+    clazz.fields = {};
+    clazz.functions = {};
     clazz.curlyCount = 0;
-    clazz.imports = [ ];
-    clazz.findFunction = (function(find) {
+    clazz.imports = [];
+    clazz.findFunction = (function (find) {
         for (const i in this.functions) {
             const func = this.functions[i];
             if (func.functionName === find) {
@@ -117,7 +137,7 @@ const JavaClass = function (pkg, className, access, ownerClass, extend, implemen
         // TODO: Recursive search through all superClasses
         return null;
     });
-    clazz.findField = (function(find) {
+    clazz.findField = (function (find) {
         for (const i in this.fields) {
             const field = this.fields[i];
             if (field.fieldName === find) {
@@ -129,20 +149,22 @@ const JavaClass = function (pkg, className, access, ownerClass, extend, implemen
     return clazz;
 };
 const JavaFunction = function (annotations, access, retType, functionName, args, ownerClass) {
-    const func = [ ];
+    const func = [];
     func.annotations = annotations;
     func.access = access;
     func.retType = retType;
     func.functionName = functionName;
     func.arguments = args;
     func.ownerClass = ownerClass;
-    func.instructions = [ ];
+    func.instructions = [];
     func.curlyCount = 0;
-    func.print = function () { return (annotations + " " + access.join(' ')).trim() + " " + retType + " " + functionName + " (" + args + ")" }
+    func.print = function () {
+        return (annotations + " " + access.join(' ')).trim() + " " + retType + " " + functionName + " (" + args + ")"
+    }
     return func;
 };
 const JavaField = function (fieldName, access, type, ownerClass, value) {
-    const field = [ ];
+    const field = [];
     field.fieldName = fieldName;
     field.access = access;
     field.type = type;
@@ -151,8 +173,8 @@ const JavaField = function (fieldName, access, type, ownerClass, value) {
     return field;
 };
 const defaultSuperClass = 'java.lang.Object';
-const accessModifiers = [ "public", "private", "protected", "static", "final", "native", "abstract", "transient", "volatile", "synchronized" ];
-const returnTypes = [ "void", "String", "int" ]; // TODO: Add more
+const accessModifiers = ["public", "private", "protected", "static", "final", "native", "abstract", "transient", "volatile", "synchronized"];
+const returnTypes = ["void", "String", "int"]; // TODO: Add more
 let clazzes;
 
 /*
@@ -169,10 +191,8 @@ const funcTest = clz.findFunction('testCalls');
 console.log(funcTest);
 */
 
-async function doStuff()
-{
-    await fetch("java.7.indexes.json").then(async response =>
-    {
+async function doStuff() {
+    await fetch("java.7.indexes.json").then(async response => {
         const text = await response.text();
         console.time('json_load');
         const json = JSON.parse(text);
@@ -212,13 +232,13 @@ async function doStuff()
             return part[split[i]];
         }
     });
-    await fetch("testing/src/Test.java").then(async response =>
-    {
+    await fetch("testing/src/Test.java").then(async response => {
         const text = await response.text();
         clazzes = processSourceCode(text);
         processClasses(clazzes);
     });
 }
+
 doStuff().then();
 
 function findClass(find) {
@@ -248,30 +268,27 @@ function fetchFunctionBlock(data) {
     }
     const blockData = data.substring(0, charIndex).trim();
 //    console.log("blockData: '" + blockData + "'");
-    return [ charIndex, blockData ];
+    return [charIndex, blockData];
 }
 
 function findFirst(text, findArr = []) {
-    if (findArr.length === 0) return [ -1, '' ];
+    if (findArr.length === 0) return [-1, ''];
     const chars = iter(text.split(''));
     const textLen = text.length;
-    while (true)
-    {
+    while (true) {
         const c = chars.next();
         if (!c) break;
         const index = chars.index();
-outer:  for (const i in findArr)
-        {
+        outer:  for (const i in findArr) {
             const find = findArr[i];
             const flen = find.length;
             if (flen === 0 || flen > textLen)
                 continue;
             if (flen === 1 && c === find)
-                return [ index, find ];
+                return [index, find];
             if (c !== find.charAt(0) || !chars.peekNextN(flen - 1))
                 continue;
-            for (let n = 1; n < flen; n++)
-            {
+            for (let n = 1; n < flen; n++) {
                 const peekN = chars.peekNextN(n);
                 if (!peekN)
                     continue outer;
@@ -279,15 +296,14 @@ outer:  for (const i in findArr)
                 if (peekN !== findN)
                     continue outer;
             }
-            return [ index, find ];
+            return [index, find];
         }
     }
-    return [ -1, '' ];
+    return [-1, ''];
 }
 
-function parseFunctionBlock(sub, after, elem)
-{
-    const [ i, blockData ] = fetchFunctionBlock(after);
+function parseFunctionBlock(sub, after, elem) {
+    const [i, blockData] = fetchFunctionBlock(after);
 //    console.log("blockData: '" + blockData + "'");
 
     const child = [];
@@ -298,49 +314,41 @@ function parseFunctionBlock(sub, after, elem)
     return i; // End of block (start of next block if any)
 }
 
-function parseFunctionData(data, elem = [])
-{
+function parseFunctionData(data, elem = []) {
 //    console.log('');
-    while (true)
-    {
-        let [index, which] = findFirst(data, [ ';', '{' ]);
+    while (true) {
+        let [index, which] = findFirst(data, [';', '{']);
         if (index === -1)
             break;
 //        console.log("Data: !" + data + "!");
         let sub = data.substring(0, index).trim();
 //        console.log("Sub: '" + sub + "' (" + sub.length + ")");
-        if (sub.startsWith('for '))
-        {
-            [index, which] = findFirst(data, [ '{' ]);
+        if (sub.startsWith('for ')) {
+            [index, which] = findFirst(data, ['{']);
             if (index === -1)
                 break;
             sub = data.substring(0, index).trim();
         }
-        if (which === '{')
-        {
+        if (which === '{') {
             const after = data.substring(index + 1);
             const json = [];
             const ret = parseFunctionBlock(sub, after, json);
             if (json.length === 1)
                 elem.push(json[0]);
-            else
-            if (json.length > 1)
+            else if (json.length > 1)
                 elem.push(json);
 //            console.log('Ret: ' + ret);
             data = after.substring(ret); // No clue why `+ 1` doesn't work here, it returns an empty string!
             data = data.substring(1);
         }
         // TODO: Add ; (semicolon) maybe?
-        else
-        {
+        else {
             data = data.substring(index + 1);
 //            console.log(sub + ';');
             const subTrimmed = sub.trim();
-            if (subTrimmed.startsWith('while ('))
-            {
+            if (subTrimmed.startsWith('while (')) {
                 const lastItem = elem.at(-1);
-                if (typeof lastItem !== 'undefined')
-                {
+                if (typeof lastItem !== 'undefined') {
                     lastItem['value'] = subTrimmed + ';';
                     continue;
                 }
@@ -576,7 +584,7 @@ function processClasses(classes) {
     let debug = 1;
 
     // Parse all instructions
-    for (const clazz of classes)  {
+    for (const clazz of classes) {
         for (const name in clazz.functions) {
             const func = clazz.functions[name];
             const elements = parseFunctionData(func.instructions.join(''));
@@ -607,8 +615,7 @@ function processClasses(classes) {
         let value = '';
 
         code.style.display = 'block';
-        for (const clazz of classes)
-        {
+        for (const clazz of classes) {
             if (clazz.package !== '')
                 value += ('package ' + clazz.package + ';\n\n');
             if (clazz.imports.length > 0) {
@@ -624,16 +631,14 @@ function processClasses(classes) {
             if (clazz.implement !== '')
                 value += (' implements ' + clazz.implement);
             value += (' {\n');
-            for (const name in clazz.fields)
-            {
+            for (const name in clazz.fields) {
                 const field = clazz.fields[name];
                 if (field.value !== null)
                     value += ('    ' + (field.access.length === 0 ? "" : field.access.join(' ') + ' ') + field.type + ' ' + name + ' = ' + field.value + ';\n');
                 else
                     value += ('    ' + (field.access.length === 0 ? "" : field.access.join(' ') + ' ') + field.type + ' ' + name + ';\n');
             }
-            for (const name in clazz.functions)
-            {
+            for (const name in clazz.functions) {
                 const func = clazz.functions[name];
                 value += ('    ' + (func.access.length === 0 ? "" : func.access.join(' ') + ' ') +
                     (func.retType === "" ? "" : func.retType + ' ') + name + '(' + func.arguments.join(' ') + ') {' + '\n');
@@ -664,9 +669,9 @@ function processSourceCode(javaSourceCode) {
     let tempString = "";
 
     let currentPkg = '';
-    let imports = [ ];
+    let imports = [];
 
-    let classes = [ ];
+    let classes = [];
     let currentClass = null, currentFunction = null;
     let currentCurlyCount = 0;
 
@@ -675,8 +680,7 @@ function processSourceCode(javaSourceCode) {
     let inStringBackslash = 0;
 
     const chars = iter(javaSourceCode.split(''));
-    while (true)
-    {
+    while (true) {
         // Get next character
         const c = chars.next();
         // And break the loop if this is the end
@@ -684,27 +688,20 @@ function processSourceCode(javaSourceCode) {
             break;
 
         // Firstly, check if we are inside a string...
-        if (inString)
-        {
+        if (inString) {
             // If we are inside a string, and this char is " and the previous one isn't escaped by '\'
             // then we break out of the string.
 
-            if (c === '\\')
-            {
+            if (c === '\\') {
                 if (++inStringBackslash === 2)
                     inStringBackslash = 0;
-            }
-            else
-            if (c === '"')
-            {
+            } else if (c === '"') {
                 inString = false;
                 inStringBackslash = 0;
                 // TODO: Use stringValue in some way
                 tempString += "\"" + stringValue + "\"";
                 stringValue = "";
-            }
-            else
-            {
+            } else {
                 stringValue += c;
                 inStringBackslash = 0;
             }
@@ -714,16 +711,12 @@ function processSourceCode(javaSourceCode) {
 
         // Skip comment format '//'
         {
-            if (c === '/' && !inComment1 && chars.peekNext() === '/')
-            {
+            if (c === '/' && !inComment1 && chars.peekNext() === '/') {
                 inComment1 = true;
                 chars.next(); // Skip the /
                 continue;
-            }
-            else if (inComment1)
-            {
-                if (c === '\n')
-                {
+            } else if (inComment1) {
+                if (c === '\n') {
                     inComment1 = false;
                     chars.next(); // Skip the newline
                 }
@@ -733,17 +726,12 @@ function processSourceCode(javaSourceCode) {
 
         // Skip comment format '/*'
         {
-            if (c === '/' && !inComment2 && chars.peekNext() === '*')
-            {
+            if (c === '/' && !inComment2 && chars.peekNext() === '*') {
                 inComment2 = true;
                 chars.next(); // Skip the *
                 continue;
-            }
-            else
-            if (inComment2)
-            {
-                if (c === '*' && chars.peekNext() === '/')
-                {
+            } else if (inComment2) {
+                if (c === '*' && chars.peekNext() === '/') {
                     inComment2 = false;
                     chars.next(); // Skip the last '/'
                 }
@@ -757,12 +745,10 @@ function processSourceCode(javaSourceCode) {
             continue;
         }
 
-        if (inFunction)
-        {
+        if (inFunction) {
             const tmp = currentCurlyCount;
 
-            if (c === '}' && currentFunction.curlyCount === currentCurlyCount)
-            {
+            if (c === '}' && currentFunction.curlyCount === currentCurlyCount) {
                 inFunction = false;
                 if (currentCurlyCount > 0)
                     --currentCurlyCount;
@@ -771,16 +757,10 @@ function processSourceCode(javaSourceCode) {
                 currentFunction = null;
                 tempString = '';
                 continue;
-            }
-            else
-            if (c === '{')
-            {
+            } else if (c === '{') {
                 currentCurlyCount++;
                 console.log("[" + tmp + " -> " + currentCurlyCount + "] Loop inside function " + currentFunction.functionName);
-            }
-            else
-            if (c === '}')
-            {
+            } else if (c === '}') {
                 currentCurlyCount--;
                 console.log("[" + tmp + " -> " + currentCurlyCount + "] Exiting loop inside function " + currentFunction.functionName);
             }
@@ -812,42 +792,36 @@ function processSourceCode(javaSourceCode) {
             index = i;
             return result;
         }
-        const getNextWord = str =>
-        {
+        const getNextWord = str => {
             let index = 0;
-            while (true)
-            {
+            while (true) {
                 let search = ' ';
-                if (str.trim().startsWith('@'))
-                {
+                if (str.trim().startsWith('@')) {
                     search = ')';
                     const tmp = index;
                     index = str.indexOf(search, index);
-                    if (index === -1)
-                    {
+                    if (index === -1) {
                         search = ' ';
                         index = tmp;
                     }
                 }
                 index = str.indexOf(search, index);
-                if (index === -1) return [ str, str.length ];
+                if (index === -1) return [str, str.length];
                 if (search === ')') index++;
                 if (str.substring(0, index).trim().length > 0)
                     break;
                 index++;
             }
-            return [ str.substring(0, index).trim(), index ];
+            return [str.substring(0, index).trim(), index];
         }
-        const getFieldData = () =>
-        {
-            const annotations = [ ];
-            const access = [ ];
+        const getFieldData = () => {
+            const annotations = [];
+            const access = [];
             let ret = '';
             let name = '';
-            const strings = [ ];
+            const strings = [];
             let str = tempString;
-            while (true)
-            {
+            while (true) {
                 const [word, index] = getNextWord(str);
                 if (word.trim().length === 0)
                     break;
@@ -855,13 +829,11 @@ function processSourceCode(javaSourceCode) {
                 str = str.substring(index);
             }
             let len = strings.length;
-            while (len--)
-            {
+            while (len--) {
                 const word = strings[len];
                 if (word.startsWith('@'))
                     annotations.push(word);
-                else
-                if (accessModifiers.includes(word))
+                else if (accessModifiers.includes(word))
                     access.push(word);
                 else
                     continue;
@@ -869,23 +841,21 @@ function processSourceCode(javaSourceCode) {
             }
             name = strings.pop();
             ret = strings.pop();
-            return [ annotations, access, ret, name ];
+            return [annotations, access, ret, name];
         }
-        const getFunctionData = () =>
-        {
-            const annotations = [ ];
-            const access = [ ];
+        const getFunctionData = () => {
+            const annotations = [];
+            const access = [];
             let ret = '';
             let name = '';
-            const args = [ ];
+            const args = [];
             let str = tempString;
-            const strings = [ ];
+            const strings = [];
             const idx = str.lastIndexOf('(');
             let argsString = str.substring(idx + 1);
             argsString = argsString.substring(0, argsString.indexOf(')'));
             str = str.substring(0, idx);
-            while (true)
-            {
+            while (true) {
                 const [word, index] = getNextWord(str);
                 if (word.trim().length === 0)
                     break;
@@ -893,13 +863,11 @@ function processSourceCode(javaSourceCode) {
                 str = str.substring(index);
             }
             let len = strings.length;
-            while (len--)
-            {
+            while (len--) {
                 const word = strings[len];
                 if (word.startsWith('@'))
                     annotations.push(word);
-                else
-                if (accessModifiers.includes(word))
+                else if (accessModifiers.includes(word))
                     access.push(word);
                 else
                     continue;
@@ -907,22 +875,19 @@ function processSourceCode(javaSourceCode) {
             }
             if (strings.length === 1 && strings[0] === currentClass.className)
                 name = strings.pop();
-            else
-            {
+            else {
                 name = strings.pop();
                 ret = strings.pop();
             }
             args.push(argsString.split(','));
-            return [ annotations, access, ret, name, args ];
+            return [annotations, access, ret, name, args];
         }
 
-        if (inClass)
-        {
+        if (inClass) {
             const tmp = currentCurlyCount;
             // Function
-            if (c === '{' && tempString.includes('(') && tempString.includes(')'))
-            {
-                const [ annotations, access, ret, name, args ] = getFunctionData();
+            if (c === '{' && tempString.includes('(') && tempString.includes(')')) {
+                const [annotations, access, ret, name, args] = getFunctionData();
                 currentFunction = new JavaFunction(annotations, access, ret, name, args, currentClass);
 
                 currentCurlyCount++;
@@ -934,22 +899,19 @@ function processSourceCode(javaSourceCode) {
                 print += currentFunction.print() + " {";
                 tempString = "";
                 continue;
-            }
-            else
+            } else
                 // Field
-            if (c === ';')
-            {
+            if (c === ';') {
                 let value = null;
 
                 // TODO: Improve `value` fetching (does it work for multi-line values?)
-                if (tempString.includes('='))
-                {
+                if (tempString.includes('=')) {
                     const idx = tempString.indexOf('=');
                     value = tempString.substring(idx + 1);
                     tempString = tempString.substring(0, idx);
                 }
 
-                const [ annotations, access, ret, name ] = getFieldData();
+                const [annotations, access, ret, name] = getFieldData();
 
                 currentClass.fields[name] = new JavaField(name, access, ret, currentClass, value);
 
@@ -960,10 +922,7 @@ function processSourceCode(javaSourceCode) {
 
                 tempString = "";
                 continue;
-            }
-            else
-            if (c === '}' && currentClass.curlyCount === currentCurlyCount)
-            {
+            } else if (c === '}' && currentClass.curlyCount === currentCurlyCount) {
                 const tmp = currentCurlyCount;
                 if (currentCurlyCount > 0)
                     --currentCurlyCount;
@@ -980,10 +939,8 @@ function processSourceCode(javaSourceCode) {
 
         // Not in function or class? Probably 'package', 'import' or 'class'
 
-        if (c === ';')
-        {
-            if (tempString.includes('package '))
-            {
+        if (c === ';') {
+            if (tempString.includes('package ')) {
                 getWord();
                 tempString = tempString.substring(index);
 
@@ -994,10 +951,7 @@ function processSourceCode(javaSourceCode) {
 
                 tempString = "";
                 continue;
-            }
-            else
-            if (tempString.includes('import '))
-            {
+            } else if (tempString.includes('import ')) {
                 tempString = tempString.trim();
                 getWord();
                 tempString = tempString.substring(index);
@@ -1016,14 +970,12 @@ function processSourceCode(javaSourceCode) {
             continue;
         }
 
-        const getAnnoThenAccessThenClassNameThenSuperClass = () =>
-        {
-            const annotations = [ ];
-            const access = [ ];
+        const getAnnoThenAccessThenClassNameThenSuperClass = () => {
+            const annotations = [];
+            const access = [];
             let name = '', extend = defaultSuperClass, implement = '';
             let nextIsExtends = false, nextIsImplements = false;
-            while (true)
-            {
+            while (true) {
                 getWord();
                 let str = tempString.substring(0, index).trim();
                 tempString = tempString.substring(index);
@@ -1032,52 +984,36 @@ function processSourceCode(javaSourceCode) {
 
                 if (str.startsWith("@"))
                     annotations.push(str);
-                else
-                if (accessModifiers.includes(str))
+                else if (accessModifiers.includes(str))
                     access.push(str);
-                else
-                if (str === 'class')
+                else if (str === 'class')
                     continue;
-                else
-                if (str === 'extends')
-                {
+                else if (str === 'extends') {
                     nextIsExtends = true;
                     continue;
-                }
-                else
-                if (str === 'implements')
-                {
+                } else if (str === 'implements') {
                     nextIsImplements = true;
                     continue;
-                }
-                else
-                {
-                    if (nextIsExtends)
-                    {
+                } else {
+                    if (nextIsExtends) {
                         extend = str;
                         nextIsExtends = false;
-                    }
-                    else
-                    if (nextIsImplements)
-                    {
+                    } else if (nextIsImplements) {
                         implement = str;
                         nextIsImplements = false;
-                    }
-                    else
+                    } else
                         name = str;
                 }
             }
-            return [ annotations, access, name, extend, implement ];
+            return [annotations, access, name, extend, implement];
         }
 
-        if (c === '{')
-        {
+        if (c === '{') {
             const tmp = currentCurlyCount;
             currentCurlyCount++;
             // Class
-            if (tempString.startsWith('class ') || tempString.includes(' class '))
-            {
-                const [ annotations, access, name, extend, implement ] = getAnnoThenAccessThenClassNameThenSuperClass();
+            if (tempString.startsWith('class ') || tempString.includes(' class ')) {
+                const [annotations, access, name, extend, implement] = getAnnoThenAccessThenClassNameThenSuperClass();
 
                 currentClass = new JavaClass(currentPkg, name, access, currentClass, extend, implement);
                 currentClass.curlyCount = currentCurlyCount;
@@ -1088,12 +1024,11 @@ function processSourceCode(javaSourceCode) {
                     classes.push(currentClass);
 
                 currentPkg = '';
-                imports = [ ];
+                imports = [];
 
                 print += access.join(' ') + " class " + name + " {";
                 inClass = true;
-            }
-            else
+            } else
                 // Unknown
             {
                 if (currentCurlyCount === 2)
@@ -1110,8 +1045,7 @@ function processSourceCode(javaSourceCode) {
 
         if (c === '\n')
             print += '<br>';
-        else
-        if (c === ' ')
+        else if (c === ' ')
             print += '&nbsp;';
 
     }
