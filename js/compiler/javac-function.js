@@ -24,16 +24,42 @@ class JavaFunctionReader extends JavacUtils {
                 this.skipWhitespace(iter);
 
                 const start = iter.index();
-                const [ index, found ] =
+                let [ index, found ] =
                     this.indexOfFirst([';', '{'], iter, i === 1);
-                if (index === -1) break;
+                if (index === -1) {
+                    index = iter.len;
+                    if (iter.curr == index)
+                        break;
+                    found = ';';
+                }
                 // console.log(`index: ${index}, start: ${start}, found: ${found}`)
 
                 if (found === ';') {
                     iter.setIndex(index + 1);
-                    console.warn('A ' + text.substring(start, index))
+                    const sub = text.substring(start, index).trim();// + ';'; // TODO
+                    if (sub.length === 0)
+                        break;
+                    const subIter = new Iterator(sub);
+                    console.warn('A ' + sub)
                     console.log('')
-                    output.stack.push(text.substring(start, index));
+
+                    const subIterNoComments = new Iterator(sub);
+                    this.removeComments(subIterNoComments);
+                    if (subIterNoComments.iterMatch('^if\\s+\\(', false)) {
+                        const ifOutput = this.parseIfCheck(subIter);
+                        output.stack.push(ifOutput);
+                        continue;
+                    } else if (subIterNoComments.iterMatch('^for\\s+\\(', false)) {
+                        const forOutput = this.parseForLoop(subIter);
+                        output.stack.push(forOutput);
+                        continue;
+                    } else if (subIterNoComments.iterMatch('^while\\s+\\(', false)) {
+                        const whileOutput = this.parseWhileLoop(subIter);
+                        output.stack.push(whileOutput);
+                        continue;
+                    }
+
+                    output.stack.push(sub);
                     continue;
                 } else if (found === '{') {
                     this.skipAllBracketsUntilSemicolonBy(['{'], iter);
