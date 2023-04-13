@@ -1,8 +1,5 @@
 class JavacUtils {
 
-    /** @type string */
-    text;
-
     /** @type Iterator */
     iter;
 
@@ -38,11 +35,9 @@ class JavacUtils {
 
     /**
      * @param iter {Iterator}
-     * @param text {string}
      */
-    constructor(iter, text) {
+    constructor(iter) {
         this.iter = iter;
-        this.text = text;
         this.done = false;
         this.alphaNumericArray = [
             'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
@@ -53,6 +48,10 @@ class JavacUtils {
         ];
         this.annotationArray = ['@', '.', '('];
         this.alphaNumericAnnotationArray = this.annotationArray.concat(this.alphaNumericArray);
+    }
+
+    get text() {
+        return this.iter.text;
     }
 
     /**
@@ -73,6 +72,17 @@ class JavacUtils {
      */
     isWhitespace(char) {
         return /\s/.test(char);
+    }
+
+    /**
+     * Test if name is a valid java name.
+     * - They must begin with a letter, underscore (_), or dollar sign ($).
+     * - Subsequent characters can be letters, digits, underscores, or dollar signs.
+     * @param name {string}
+     * @returns {boolean}
+     */
+    isValidJavaName(name) {
+        return /^[$A-Za-z_*][\w$]*$/.test(name);
     }
 
     /**
@@ -122,6 +132,7 @@ class JavacUtils {
         let len = iter.len;
         for (let i = iter.curr; i < len; i++) {
             const c = iter.char();
+
             // console.log(`c: ${c}, ignored: ${iter.isIgnore(i)}`)
 
             iter.next();
@@ -144,152 +155,29 @@ class JavacUtils {
         }
     }
 
-    skipUntilCharOutsideBrackets(char, iter = null) {
-        iter = (iter === null ? this.iter : iter);
-
-        // console.log(`sub: '${iter.toString()}'`)
-        // while (true) {
-        for (let i = 0; i < 100; i++) {
-            const [ index, found ] =
-                this.indexOfFirst(['(', '{', '[', ';'], iter);
-            // console.log(`firstFound: ${found ?? -1}`)
-            if (index === -1)
-                break;
-            if (found === ';')
-                break;
-            this.skipUntilClosingChar(found, iter);
-        }
-        return;
-
-        let isInSingleLineComment = false,
-            isInMultiLineComment = false,
-            isInString = false,
-            isInChar = false;
-        let inStringBackslash = false;
-
-        let count = 0;
-        let curr = iter.curr;
-        let len = iter.len;
-
-        for (let i = curr; i < len; i++) {
-            let p = iter.peekPrev();
-            if (!p) p = '\n';
-
-            const c = iter.char();
-            if (!c) return;
-            iter.next();
-
-            const n = i < len - 1 ? iter.char() : '\n';
-            if (!n) return;
-
-            // console.log(`p: ${p}, c: ${c}, n: ${n}, isInString: ${isInString}, isInChar: ${isInChar}, isInSingleLineComment: ${isInSingleLineComment}, isInMultiLineComment: ${isInMultiLineComment}`)
-            // console.log(`c: ${c}, isInString: ${isInString}, isInChar: ${isInChar}, isInSingleLineComment: ${isInSingleLineComment}, isInMultiLineComment: ${isInMultiLineComment}`)
-            // console.log(`c: ${c}`)
-
-            if (isInChar) {
-                if (n === '\'' && (c !== '\\' || (c === '\\' && p === '\\'))) {
-                    // console.log('escaping char')
-                    isInChar = false;
-                    iter.next();
-                    i++;
-                    // console.log('Leaving char')
-                }
-                continue;
-            }
-
-            if (isInString) {
-                // console.log(` inStringBackslash: ${inStringBackslash}`)
-                if (c === '\\') {
-                    inStringBackslash = !inStringBackslash;
-                } else if (c === '"' && !inStringBackslash) {
-                    isInString = false;
-                    inStringBackslash = 0;
-                    // console.log('Leaving string')
-                } else {
-                    inStringBackslash = false;
-                }
-                continue;
-            }
-
-            // Escape single-line comment?
-            if (isInSingleLineComment) {
-                if (c === '\n') {
-                    isInSingleLineComment = false;
-                    // console.log('Leaving single')
-                }
-                continue;
-            }
-
-            // Escape multi-line comment?
-            if (isInMultiLineComment) {
-                if (c === '*' && n === '/') {
-                    isInMultiLineComment = false;
-                    // console.log('Leaving multi')
-                    iter.next();
-                    i++;
-                }
-                continue;
-            }
-
-            // Detect char
-            if (c === '\'') {
-                isInChar = true;
-                // console.log('Entering char')
-                continue;
-            }
-
-            // Detect string
-            if (c === '"') {
-                if (n !== '"') {
-                    isInString = true;
-                    // console.log('Entering string')
-                } else {
-                    iter.next();
-                    // console.log('Entering and Exited string')
-                }
-                continue;
-            }
-
-            // Enter single-line comment
-            if (c === '/' && n === '/') {
-                // console.log('Entering single')
-                isInSingleLineComment = true;
-                iter.next();
-                i++;
-                continue;
-            }
-
-            // Enter multi-line comment
-            if (c === '/' && n === '*') {
-                // console.log('Entering multi')
-                isInMultiLineComment = true;
-                iter.next();
-                i++;
-                continue;
-            }
-
-            if (c === char) {
-                count++;
-                // console.log('opening (' + count + ')')
-            }
-            else if (c === findClosing) {
-                count--;
-                // console.log('closing (' + count + ')')
-                if (count === 0) {
-                    // iter.next(); // Skip last closing character
-                    // console.log('!END!')
-                    break;
-                }
-            }
-        }
+    skipAllBracketsUntilSemicolon(iter = null) {
+        this.skipAllBracketsUntilSemicolonBy(['(', '{', '['], iter);
     }
 
-    indexOfFirst(chars, iter = null) {
+    skipAllBracketsUntilSemicolonBy(chars, iter = null) {
+        iter = (iter === null ? this.iter : iter);
+
+        const [ index, found ] =
+            this.indexOfFirst(chars.concat([';']), iter);
+        // console.log(`firstFound: ${found ?? -1}`)
+        if (index === -1 || found === ';')
+            return;
+        this.skipUntilClosingChar(found, iter);
+    }
+
+    indexOfFirst(chars, iter = null, test = false) {
         iter = (iter === null ? this.iter : iter);
         const index = iter.curr;
 
         const len = iter.len;
         for (let i = index; i < len; i++) {
+
+            // console.log(`${i}, ${iter.char()}: ${iter.getIgnore(i)}`)
 
             if (iter.isIgnore(i)) {
                 iter.next();
@@ -298,9 +186,8 @@ class JavacUtils {
 
             const c = iter.char();
             if (chars.includes(c)) {
-                const foundIndex = iter.index();
                 iter.setIndex(index);
-                return [ foundIndex, c ];
+                return [ i, c ];
             }
 
             iter.next();
@@ -382,6 +269,21 @@ class JavacUtils {
     }
 
     /**
+     * Removes comments from the iterator
+     * @param iter {Iterator}
+     */
+    removeComments(iter) {
+        iter = (iter === null ? this.iter : iter);
+        const chars = iter.chars;
+        let output = '';
+        for (let i = 0; i < iter.len; i++) {
+            if (iter.isIgnore(i)) continue;
+            output += chars[i];
+        }
+        iter.setText(output);
+    }
+
+    /**
      * Convert accessFlags (int) to a readable string
      * @param accessFlags {int}
      * @returns {string}
@@ -410,7 +312,32 @@ class JavacUtils {
         if ((Opcodes.ACC_DEPRECATED & accessFlags) != 0x0)
             strings.push('deprecated');
 
+        if ((Opcodes.ACC_STRICT & accessFlags) != 0x0)
+            strings.push('strictfp');
+
         return strings.join(' ');
+    }
+
+    /**
+     Convert a readable string to accessFlags (int)
+     * @param flagStrings {string[]}
+     * @returns {number}
+     */
+    static stringsToAccessFlags(flagStrings) {
+        let accessFlags = 0x0;
+        flagStrings.forEach(flag => {
+            switch (flag) {
+                case 'public':     accessFlags |= Opcodes.ACC_PUBLIC; break;
+                case 'private':    accessFlags |= Opcodes.ACC_PRIVATE; break;
+                case 'protected':  accessFlags |= Opcodes.ACC_PROTECTED; break;
+                case 'static':     accessFlags |= Opcodes.ACC_STATIC; break;
+                case 'final':      accessFlags |= Opcodes.ACC_FINAL; break;
+                case 'abstract':   accessFlags |= Opcodes.ACC_ABSTRACT; break;
+                case 'deprecated': accessFlags |= Opcodes.ACC_DEPRECATED; break;
+                case 'strictfp':   accessFlags |= Opcodes.ACC_STRICT; break;
+            }
+        });
+        return accessFlags;
     }
 
 }
@@ -457,6 +384,9 @@ class ClassParseResultReason {
 
 class Iterator {
 
+    /** @type string */
+    text;
+
     /** @type [] */
     chars;
 
@@ -474,11 +404,12 @@ class Iterator {
      * 1. String
      * 2. Char
      * 3. Comment (single or multi)
-     * @type boolean[]
+     * @type int[]
      */
     ignoredIndexes;
 
     constructor(text) {
+        this.text = text;
         this.chars = text.split('');
         this.len = text.length;
         this.curr = 0;
@@ -490,13 +421,25 @@ class Iterator {
      * AKA current char is inside a string, char or a comment.
      */
     isIgnore(i = 0) {
+        return this.ignoredIndexes[i] !== 0;
+    }
+
+    getIgnore(i = 0) {
         return this.ignoredIndexes[i];
     }
 
     skipIgnores() {
-        while (this.ignoredIndexes[this.curr])
+        while (this.ignoredIndexes[this.curr] !== 0)
             if (!this.next())
                 break;
+    }
+
+    setText(text) {
+        this.text = text;
+        this.chars = text.split('');
+        this.len = text.length;
+        this.curr = 0;
+        this.init();
     }
 
     index() {
@@ -560,11 +503,23 @@ class Iterator {
         return this.peek(this.len - this.curr - n);
     }
 
+    removeFirst(n = 1) {
+        this.chars.splice(0, n);
+        this.len = this.chars.length;
+        this.text = this.chars.join('');
+        this.curr -= n;
+        if (this.curr < 0)
+            this.curr = 0;
+        this.ignoredIndexes.splice(0, n);
+    }
+
     removeLast(n = 1) {
         if (n === 0) return;
         if (n < 0) n *= -1;
         this.chars.splice(-n);
         this.len = this.chars.length;
+        this.text = this.chars.join('');
+        this.ignoredIndexes.splice(-n);
     }
 
     findNext(c, jumpTo = false, jumpOver = true) {
@@ -726,7 +681,7 @@ class Iterator {
 
         this.ignoredIndexes = [...Array(this.len)];
         for (let i = 0; i < len; i++) {
-            this.ignoredIndexes[i] = true;
+            this.ignoredIndexes[i] = 1;
 
             const p = i < 0 ? '\n' : chars[i - 1];
             const c = chars[i];
@@ -735,16 +690,18 @@ class Iterator {
             // console.log(`c: ${c}`)
 
             if (isInChar) {
+                this.ignoredIndexes[i] = 3;
                 if (n === '\'' && (c !== '\\' || (c === '\\' && p === '\\'))) {
                     isInChar = false;
                     i++;
-                    this.ignoredIndexes[i] = true;
+                    this.ignoredIndexes[i] = 3;
                     // console.log('Leaving char')
                 }
                 continue;
             }
 
             if (isInString) {
+                this.ignoredIndexes[i] = 2;
                 // console.log(` inStringBackslash: ${inStringBackslash}`)
                 if (c === '\\') {
                     inStringBackslash = !inStringBackslash;
@@ -760,6 +717,7 @@ class Iterator {
 
             // Escape single-line comment?
             if (isInSingleLineComment) {
+                this.ignoredIndexes[i] = 4;
                 if (c === '\n') {
                     isInSingleLineComment = false;
                     // console.log('Leaving single')
@@ -769,17 +727,19 @@ class Iterator {
 
             // Escape multi-line comment?
             if (isInMultiLineComment) {
+                this.ignoredIndexes[i] = 5;
                 if (c === '*' && n === '/') {
                     isInMultiLineComment = false;
                     // console.log('Leaving multi')
                     i++;
-                    this.ignoredIndexes[i] = true;
+                    this.ignoredIndexes[i] = 5;
                 }
                 continue;
             }
 
             // Detect char
             if (c === '\'') {
+                this.ignoredIndexes[i] = 3;
                 isInChar = true;
                 // console.log('Entering char')
                 continue;
@@ -787,13 +747,14 @@ class Iterator {
 
             // Detect string
             if (c === '"') {
+                this.ignoredIndexes[i] = 2;
                 if (n !== '"') {
                     isInString = true;
                     // console.log('Entering string')
                 } else {
                     // console.log('Entering and Exited string')
                     i++;
-                    this.ignoredIndexes[i] = true;
+                    this.ignoredIndexes[i] = 2;
                 }
                 continue;
             }
@@ -802,8 +763,9 @@ class Iterator {
             if (c === '/' && n === '/') {
                 // console.log('Entering single')
                 isInSingleLineComment = true;
+                this.ignoredIndexes[i] = 4;
                 i++;
-                this.ignoredIndexes[i] = true;
+                this.ignoredIndexes[i] = 4;
                 continue;
             }
 
@@ -811,13 +773,18 @@ class Iterator {
             if (c === '/' && n === '*') {
                 // console.log('Entering multi')
                 isInMultiLineComment = true;
+                this.ignoredIndexes[i] = 5;
                 i++;
-                this.ignoredIndexes[i] = true;
+                this.ignoredIndexes[i] = 5;
                 continue;
             }
 
-            this.ignoredIndexes[i] = false;
+            this.ignoredIndexes[i] = 0;
         }
+
+        // for (let i = 0; i < len; i++) {
+        //     console.log(`i: ${i}, c: ${this.chars[i]}, ignored: ${this.ignoredIndexes[i]}`)
+        // }
     }
 
 }

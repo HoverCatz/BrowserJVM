@@ -12,7 +12,7 @@ function test(iter, text) {
     if (!doTest)
         return false;
 
-    const test = new JavacUtils(iter, text);
+    const test = new JavacUtils(iter);
 
     console.log(test.readUntil('{', iter, false));
 
@@ -25,7 +25,7 @@ function test(iter, text) {
     iter = new Iterator(classText);
     iter.next()
     iter.removeLast()
-    test.skipUntilCharOutsideBrackets(';', iter)
+    test.skipAllBracketsUntilSemicolon(iter)
 
     return true;
 }

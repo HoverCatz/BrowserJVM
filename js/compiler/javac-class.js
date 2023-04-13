@@ -6,8 +6,8 @@ class JavaSourceReader extends JavacUtils {
     /** @type [] */
     topLevelClasses;
 
-    constructor(fileName, text, iter) {
-        super(iter, text);
+    constructor(fileName, iter) {
+        super(iter);
         this.fileName = fileName;
     }
 
@@ -479,7 +479,7 @@ class JavaSourceReader extends JavacUtils {
 
         if (classType === 'enum') {
             const start = iter.index();
-            this.skipUntilCharOutsideBrackets(';', iter);
+            this.skipAllBracketsUntilSemicolon(iter);
             const end = iter.index();
             enumText = classText.substring(start, end)
                 .trim();
@@ -763,17 +763,6 @@ class JavaSourceReader extends JavacUtils {
             imports.push(name);
         }
         return [true, imports];
-    }
-
-    /**
-     * Test if name is a valid java name.
-     * - They must begin with a letter, underscore (_), or dollar sign ($).
-     * - Subsequent characters can be letters, digits, underscores, or dollar signs.
-     * @param name {string}
-     * @returns {boolean}
-     */
-    isValidJavaName(name) {
-        return /^[$A-Za-z_*][\w$]*$/.test(name);
     }
 
     /**

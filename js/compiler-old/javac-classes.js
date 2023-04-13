@@ -37,10 +37,9 @@ class JavaSourceReader extends JavacUtils {
     ignoreEndGarbage;
 
     constructor(fileName, text, iter, ignoreEndGarbage = false) {
-        super();
+        super(iter);
         this.fileName = fileName;
         this.text = text;
-        this.iter = iter;
         this.clz = new JvmClass();
         this.fields = [];
         this.functions = [];
