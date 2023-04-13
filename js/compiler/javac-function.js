@@ -133,10 +133,9 @@ class JavaFunctionReader extends JavacUtils {
             error: 'Open-index for character `(` not found.'
         };
 
-        const start = iter.index();
+        // const start = iter.index();
         this.skipAllBracketsUntilSemicolonBy(['('], iter);
         const end = iter.index();
-        iter.setIndex(end + 1);
 
         const forHeader = text.substring(openIndex, end).trim();
         const forData = text.substring(end).trim();
@@ -174,10 +173,9 @@ class JavaFunctionReader extends JavacUtils {
             error: 'Open-index for character `(` not found.'
         };
 
-        const start = iter.index();
+        // const start = iter.index();
         this.skipAllBracketsUntilSemicolonBy(['('], iter);
         const end = iter.index();
-        iter.setIndex(end + 1);
 
         const whileHeader = text.substring(openIndex, end).trim();
         const whileData = text.substring(end).trim();
