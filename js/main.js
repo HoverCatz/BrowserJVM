@@ -71,32 +71,56 @@ const indexes = async function (minimized = true) {
     //
     // return;
 
+    // const text = `
+    //     String test = "Hello world :)";
+    //     // Hello world
+    //     System.out.println(test);
+    //     String test2 = true() ? "a" : "b";
+    //     String test3;
+    //     {
+    //         String test4;
+    //         for (abc) {
+    //             // Hello world
+    //         }
+    //         String test5;
+    //     }
+    //     if (false) {
+    //         String test6;
+    //         test6 = "owo";
+    //         return;
+    //     }
+    //     for (abc2) {
+    //         // Hello world 2
+    //         System.out.println("Hello world 2");
+    //     }
+    //     while (true) {
+    //         // Hello world 3
+    //         System.out.println("Hello world 3");
+    //     }
+    // `;
     const text = `
-        String test = "Hello world :)";
-        // Hello world
-        System.out.println(test);
-        String test2 = true() ? "a" : "b";
-        String test3;
-        {
-            String test4;
-            for (abc) {
-                // Hello world
+        boolean test = true;
+        if (test)
+            System.out.println(1);
+        test = false;
+        if (!test) {
+            System.out.println(2);
+            test = true; 
+            System.out.println(3);
+            if (test && !test) {
+                System.out.println(4);
+                if (!test && test) {
+                    System.out.println(5);
+                    if (!test && !test) {
+                        System.out.println(6);
+                        if (test && test) {
+                            System.out.println(7);
+                        }
+                    }
+                }
             }
-            String test5;
         }
-        if (false) {
-            String test6;
-            test6 = "owo";
-            return;
-        }
-        for (abc2) {
-            // Hello world 2
-            System.out.println("Hello world 2");
-        }
-        while (true) {
-            // Hello world 3
-            System.out.println("Hello world 3");
-        }
+        System.out.println(5);
     `;
     const func = new JavaFunctionReader(
         {},
