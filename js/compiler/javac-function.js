@@ -36,7 +36,7 @@ class JavaFunctionReader extends JavacUtils {
 
                 if (found === ';') {
                     iter.setIndex(index + 1);
-                    const sub = text.substring(start, index).trim();// + ';'; // TODO
+                    const sub = text.substring(start, index).trim();
                     if (sub.length === 0)
                         break;
                     const subIter = new Iterator(sub);
@@ -45,8 +45,13 @@ class JavaFunctionReader extends JavacUtils {
 
                     const subIterNoComments = new Iterator(sub);
                     this.removeComments(subIterNoComments);
-                    if (subIterNoComments.iterMatch('^if\\s+\\(', false)) {
-                        const ifOutput = this.parseIfCheck(subIter);
+                    let isIfCheck = subIterNoComments.iterMatch('^if\\s+\\(', false) ?
+                        'if' : (subIterNoComments.iterMatch('^else\\s+if\\s+\\(', false) ? 'else if' : (
+                            subIterNoComments.iterMatch('^else\\s+', false) ? 'else' : false
+                        ));
+                    if (!!isIfCheck) {
+                        console.log(`isIfCheck: ${isIfCheck}`)
+                        const ifOutput = this.parseIfCheck(subIter, isIfCheck);
                         output.stack.push(ifOutput);
                         continue;
                     } else if (subIterNoComments.iterMatch('^for\\s+\\(', false)) {
@@ -63,16 +68,59 @@ class JavaFunctionReader extends JavacUtils {
                     continue;
                 } else if (found === '{') {
                     this.skipAllBracketsUntilSemicolonBy(['{'], iter);
+                    this.skipWhitespace(iter);
+                    if (iter.char() === '.') {
+                        // We aren't done!
+                        const [ index, b ] =
+                            this.indexOfFirst([';'], iter);
+                        if (index === -1) break;
+                        iter.setIndex(index + 1);
+
+                        const end = iter.index();
+                        const sub = text.substring(start, end).trim();
+                        const subIter = new Iterator(sub);
+                        console.warn('A ' + sub)
+                        console.log('')
+
+                        const subIterNoComments = new Iterator(sub);
+                        this.removeComments(subIterNoComments);
+                        let isIfCheck = subIterNoComments.iterMatch('^if\\s+\\(', false) ?
+                            'if' : (subIterNoComments.iterMatch('^else\\s+if\\s+\\(', false) ? 'else if' : (
+                                subIterNoComments.iterMatch('^else\\s+', false) ? 'else' : false
+                            ));
+                        if (!!isIfCheck) {
+                            console.log(`isIfCheck: ${isIfCheck}`)
+                            const ifOutput = this.parseIfCheck(subIter, isIfCheck);
+                            output.stack.push(ifOutput);
+                            continue;
+                        } else if (subIterNoComments.iterMatch('^for\\s+\\(', false)) {
+                            const forOutput = this.parseForLoop(subIter);
+                            output.stack.push(forOutput);
+                            continue;
+                        } else if (subIterNoComments.iterMatch('^while\\s+\\(', false)) {
+                            const whileOutput = this.parseWhileLoop(subIter);
+                            output.stack.push(whileOutput);
+                            continue;
+                        }
+
+                        output.stack.push(sub);
+                        continue;
+                    }
                     const end = iter.index();
                     const innerText = text.substring(start, end).trim();
                     const innerIter = new Iterator(innerText);
                     const innerIterNoComments = new Iterator(innerText);
                     this.removeComments(innerIterNoComments);
+                    let isIfCheck = innerIterNoComments.iterMatch('^if\\s+\\(', false) ?
+                        'if' : (innerIterNoComments.iterMatch('^else\\s+if\\s+\\(', false) ? 'else if' : (
+                            innerIterNoComments.iterMatch('^else\\s+', false) ? 'else' : false
+                        ));
                     if (innerText.startsWith('{') && innerText.endsWith('}')) {
                         innerIter.removeFirst(1);
                         innerIter.removeLast(1);
-                    } else if (innerIterNoComments.iterMatch('^if\\s+\\(', false)) {
-                        const ifOutput = this.parseIfCheck(innerIter);
+                    } else if (!!isIfCheck) {
+                        console.log(`isIfCheck: ${isIfCheck}`)
+                        const ifOutput = this.parseIfCheck(innerIter, isIfCheck);
                         output.stack.push(ifOutput);
                         continue;
                     } else if (innerIterNoComments.iterMatch('^for\\s+\\(', false)) {
@@ -108,19 +156,32 @@ class JavaFunctionReader extends JavacUtils {
     /**
      * Parse if check
      * @param iter {Iterator}
+     * @param which {string} 'if', 'else if', 'else'
      * @return {{}}
      */
-    parseIfCheck(iter) {
+    parseIfCheck(iter, which) {
         const text = iter.text;
-        console.log(`parseIfCheck(${text})`)
+        console.log(`parseIfCheck(${text}, ${which})`)
 
-        const [ openIndex, found ] = this.indexOfFirst(['('], iter);
+        const [ openIndex, found ] =
+            this.indexOfFirst(['('], iter);
         if (openIndex === -1) return {
             error: 'Open-index for character `(` not found.'
         };
 
         // const start = iter.index();
-        this.skipAllBracketsUntilSemicolonBy(['('], iter);
+        if (which === 'else') {
+            const [ end, found ] =
+                this.indexOfFirst(['(', '{', ';'], iter);
+            if (end === -1) return {
+                error: 'End-index for character `;` not found.',
+                text: text
+            };
+            console.log(found)
+            this.skipAllBracketsUntilSemicolonBy([found], iter);
+        } else {
+            this.skipAllBracketsUntilSemicolonBy(['('], iter);
+        }
         const end = iter.index();
 
         const ifHeader = text.substring(openIndex, end).trim();
