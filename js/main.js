@@ -98,30 +98,110 @@ const indexes = async function (minimized = true) {
     //         System.out.println("Hello world 3");
     //     }
     // `;
+    // const text = `
+    //     boolean test = true;
+    //     if (test)
+    //         System.out.println(1);
+    //     test = false;
+    //     if (!test) {
+    //         System.out.println(2);
+    //         test = true;
+    //         System.out.println(3);
+    //         if (test && !test) {
+    //             System.out.println(4);
+    //             if (!test && test) {
+    //                 System.out.println(5);
+    //                 if (!test && !test) {
+    //                     System.out.println(6);
+    //                     if (test && test) {
+    //                         System.out.println(7);
+    //                     }
+    //                     System.out.println(9);
+    //                 }
+    //                 System.out.println(10);
+    //             }
+    //             System.out.println(11);
+    //         }
+    //         System.out.println(12);
+    //     }
+    //     System.out.println(13);
+    // `;
+
+    // const text = `
+    //
+    //         int foundFields = 0;
+    //         for (FieldNode field : clz.fields) {
+    //             if ((field.access & Opcodes.ACC_FINAL) == 0) continue;
+    //             if ((field.access & Opcodes.ACC_SYNTHETIC) == 0) continue;
+    //             if ((field.access & Opcodes.ACC_STATIC) == 0) continue;
+    //             if (!field.desc.equalsIgnoreCase("I")) continue;
+    //             if (field.name.length() > 2) continue;
+    //             foundFields++;
+    //         }
+    //         if (foundFields != 18)
+    //             return false;
+    //
+    //         // We should find all these
+    //         boolean foundIushr = false,
+    //                 foundIshl = false, foundIor = false,
+    //                 foundIand = false, foundIxor = false,
+    //                 foundIntegerReverse = false,
+    //                 foundIntegerRotateRight = false;
+    //
+    //         // But we shouldn't find these
+    //         boolean foundNoIshr = true, foundNoLxor = true;
+    //
+    //         // Should be 18!
+    //         int putStatics = 0;
+    //
+    //         for (MethodNode method : clz.methods) {
+    //             for (AbstractInsnNode insn : method.instructions.toArray()) {
+    //                 if (insn instanceof InsnNode) {
+    //                     int opcode = insn.getOpcode();
+    //                     if (opcode == Opcodes.IUSHR) foundIushr = true; else
+    //                     if (opcode == Opcodes.ISHL) foundIshl = true; else
+    //                     if (opcode == Opcodes.ISHR) foundNoIshr = false; /* oops! */ else
+    //                     if (opcode == Opcodes.IOR) foundIor = true; else
+    //                     if (opcode == Opcodes.IAND) foundIand = true; else
+    //                     if (opcode == Opcodes.IXOR) foundIxor = true; else
+    //                     if (opcode == Opcodes.LXOR) foundNoLxor = false; /* oops! */
+    //                 } if (insn instanceof MethodInsnNode) {
+    //                     MethodInsnNode invoke = (MethodInsnNode) insn;
+    //                     if (!invoke.owner.equals("java/lang/Integer")) continue;
+    //                     if (invoke.name.equals("reverse")) foundIntegerReverse = true; else
+    //                     if (invoke.name.equals("rotateRight")) foundIntegerRotateRight = true;
+    //                 } if (insn instanceof FieldInsnNode) {
+    //                     if (insn.getOpcode() != Opcodes.PUTSTATIC) continue;
+    //                     FieldInsnNode field = (FieldInsnNode) insn;
+    //                     if (!field.desc.equals("I")) continue;
+    //                     if (!field.owner.equals(clz.name)) continue;
+    //                     putStatics++;
+    //                 }
+    //             }
+    //         }
+    //
+    //         return foundIushr &&
+    //                foundIshl &&
+    //                foundNoIshr &&
+    //                foundIor &&
+    //                foundIand &&
+    //                foundIxor &&
+    //                foundNoLxor &&
+    //                foundIntegerReverse &&
+    //                foundIntegerRotateRight &&
+    //                putStatics == 18;
+    // `;
+
     const text = `
-        boolean test = true;
-        if (test)
-            System.out.println(1);
-        test = false;
-        if (!test) {
-            System.out.println(2);
-            test = true; 
-            System.out.println(3);
-            if (test && !test) {
-                System.out.println(4);
-                if (!test && test) {
-                    System.out.println(5);
-                    if (!test && !test) {
-                        System.out.println(6);
-                        if (test && test) {
-                            System.out.println(7);
-                        }
-                    }
-                }
-            }
+        if (true) {
+            println(1);        
+        } else if (false) {
+            println(2);
+        } else {
+            println(3);
         }
-        System.out.println(5);
     `;
+
     const func = new JavaFunctionReader(
         {},
         new Iterator(text)
