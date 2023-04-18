@@ -156,7 +156,7 @@ class JavacUtils {
     }
 
     skipAllBracketsUntilSemicolon(iter = null) {
-        this.skipAllBracketsUntilSemicolonBy(['(', '{', '['], iter);
+        return this.skipAllBracketsUntilSemicolonBy(['(', '{', '['], iter);
     }
 
     skipAllBracketsUntilSemicolonBy(chars, iter = null) {
@@ -164,13 +164,15 @@ class JavacUtils {
 
         const [ index, found ] =
             this.indexOfFirst(chars.concat([';']), iter);
-        // console.log(`firstFound: ${found ?? -1}`)
-        if (index === -1 || found === ';')
-            return;
-        this.skipUntilClosingChar(found, iter);
+        // console.log(`firstFound: ${found ?? -1}, index: ${index}`)
+        if (index === -1)
+            return false;
+        if (found !== ';')
+            this.skipUntilClosingChar(found, iter);
+        return found;
     }
 
-    indexOfFirst(chars, iter = null, test = false) {
+    indexOfFirst(chars, iter = null) {
         iter = (iter === null ? this.iter : iter);
         const index = iter.curr;
 
