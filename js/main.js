@@ -71,7 +71,9 @@ const indexes = async function (minimized = true) {
     //
     // return;
 
-    // const text = `
+    let text = ``;
+
+    // text = `
     //     String test = "Hello world :)";
     //     // Hello world
     //     System.out.println(test);
@@ -98,7 +100,8 @@ const indexes = async function (minimized = true) {
     //         System.out.println("Hello world 3");
     //     }
     // `;
-    // const text = `
+
+    // text = `
     //     boolean test = true;
     //     if (test)
     //         System.out.println(1);
@@ -127,14 +130,14 @@ const indexes = async function (minimized = true) {
     //     System.out.println(13);
     // `;
 
-    // const text = `
+    // text = `
     //
     //         int foundFields = 0;
     //         for (FieldNode field : clz.fields) {
-    //             if ((field.access & Opcodes.ACC_FINAL) == 0) continue;
-    //             if ((field.access & Opcodes.ACC_SYNTHETIC) == 0) continue;
-    //             if ((field.access & Opcodes.ACC_STATIC) == 0) continue;
-    //             if (!field.desc.equalsIgnoreCase("I")) continue;
+    //             if ((field.access & Opcodes.ACC_FINAL) == 0) continue; else
+    //             if ((field.access & Opcodes.ACC_SYNTHETIC) == 0) continue; else
+    //             if ((field.access & Opcodes.ACC_STATIC) == 0) continue; else
+    //             if (!field.desc.equalsIgnoreCase("I")) continue; else
     //             if (field.name.length() > 2) continue;
     //             foundFields++;
     //         }
@@ -165,12 +168,12 @@ const indexes = async function (minimized = true) {
     //                     if (opcode == Opcodes.IAND) foundIand = true; else
     //                     if (opcode == Opcodes.IXOR) foundIxor = true; else
     //                     if (opcode == Opcodes.LXOR) foundNoLxor = false; /* oops! */
-    //                 } if (insn instanceof MethodInsnNode) {
+    //                 } else if (insn instanceof MethodInsnNode) {
     //                     MethodInsnNode invoke = (MethodInsnNode) insn;
     //                     if (!invoke.owner.equals("java/lang/Integer")) continue;
     //                     if (invoke.name.equals("reverse")) foundIntegerReverse = true; else
     //                     if (invoke.name.equals("rotateRight")) foundIntegerRotateRight = true;
-    //                 } if (insn instanceof FieldInsnNode) {
+    //                 } else if (insn instanceof FieldInsnNode) {
     //                     if (insn.getOpcode() != Opcodes.PUTSTATIC) continue;
     //                     FieldInsnNode field = (FieldInsnNode) insn;
     //                     if (!field.desc.equals("I")) continue;
@@ -192,14 +195,76 @@ const indexes = async function (minimized = true) {
     //                putStatics == 18;
     // `;
 
-    const text = `
-        if (true) {
-            println(1);        
-        } else if (false) {
-            println(2);
-        } else {
-            println(3);
-        }
+    // text = `
+    //     String a;
+    //     a = "a";
+    //     int b = 3;
+    //     char c = 'c';
+    //     double d = 3.14d;
+    //     boolean e = true;
+    //     float f = 4.20f;
+    //     Object o = null;
+    //     o = a;
+    //     o = b;
+    //     o = c;
+    //     o = d;
+    //     o = e;
+    //     o = f;
+    //     try {
+    //         System.out.println(n);
+    //     } catch (Exception e) {
+    //         e.printStackTrace();
+    //     }
+    // `;
+
+    // text = `
+    //     try (abc) {
+    //         System.out.println(n);
+    //     } catch (Exception e) {
+    //         e.printStackTrace();
+    //     }
+    // `;
+
+    // text = `
+    //     try{a;}try(b){c;}
+    // `;
+
+    // text = `
+    //     if (true)
+    //         println(1);
+    //      else if (false)
+    //         println(2);
+    //      else
+    //         abc = new String("hehe") {
+    //             @Override
+    //             public String toString() {
+    //                 return "owo";
+    //             }
+    //         };
+    //
+    // `;
+
+    // text = `
+    //     try {
+    //         a;
+    //     } catch (Throwable t) {
+    //         b;
+    //     } finally {
+    //         c;
+    //     }
+    // `;
+
+    // text = `
+    //     ;;test;;;;;;;
+    //     ;;;;test2;;;;
+    // `;
+
+    text = `
+        test((a, b) -> {
+                for (int i = 0; i < 3; i++) {
+                    test(a + i, b - i);
+                }
+        });
     `;
 
     const func = new JavaFunctionReader(
@@ -208,6 +273,7 @@ const indexes = async function (minimized = true) {
     );
     const output = func.parseFunctionCode();
     console.log('output:', output)
+    console.log('clz:', func.clz)
     console.log(JSON.stringify(output, null, 4))
 
     // const files = {
