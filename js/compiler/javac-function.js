@@ -66,7 +66,7 @@ class JavaFunctionReader extends JavacUtils {
         const output = {};
 
         // Find label
-        found = nocc.iterFind('^\\s*(?<label>[a-zA-Z_][a-zA-Z0-9_]*)(?<colon>\\s*\\:)(?<end>)', false, false);
+        found = nocc.iterFind('^\\s*(?<label>[a-zA-Z_][a-zA-Z0-9_]*)\\s*(?<colon>\\:)(?<end>)', false, false);
         if (!!found) {
             // Found label
             nocc.next(found[0].length);
