@@ -12,7 +12,7 @@ class JavaSourceReader extends JavacUtils {
     }
 
     /**
-     * Parse
+     * Parse a class
      * @param throwErrors {boolean}
      * @returns {Promise|ClassParseResult|boolean}
      * @throws {Error}
@@ -23,6 +23,11 @@ class JavaSourceReader extends JavacUtils {
 
             // Skip leading whitespace (and all comments)
             this.skipWhitespace(iter);
+            if (iter.isDone())
+                return ClassParseResult.of(
+                    ClassParseResultReason.SuccessButAbrupt,
+                    this.stripSelf()
+                );
 
             let packageName = '';
             let hasFoundPackage = false;
@@ -773,7 +778,6 @@ class JavaSourceReader extends JavacUtils {
         delete _this.annotationArray;
         delete _this.accessWords;
         delete _this.classTypes;
-        delete _this.text;
         delete _this.iter;
         return _this;
     }
