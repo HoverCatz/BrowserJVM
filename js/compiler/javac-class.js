@@ -22,8 +22,7 @@ class JavaSourceReader extends JavacUtils {
             const iter = this.iter;
 
             // Skip leading whitespace (and all comments)
-            if (!this.skipWhitespace(iter))
-                return ClassParseResult.success(this);
+            this.skipWhitespace(iter);
 
             let packageName = '';
             let hasFoundPackage = false;
@@ -39,17 +38,17 @@ class JavaSourceReader extends JavacUtils {
             // - annotations
             // - class
             outer:
-            while (true) {
-                // for (let k = 0; k < 10; k++) {
-                if (!this.skipWhitespace(iter))
-                    break;
+            // while (true) {
+            for (let k = 0; k < 100; k++) {
+                this.skipWhitespace(iter);
+                if (iter.isDone()) break;
 
                 iter.setBookmark('last');
                 const start = iter.index();
 
                 let index, char, type;
-                while (true) {
-                // for (let k = 0; k < 10; k++) {
+                // while (true) {
+                for (let k = 0; k < 100; k++) {
 
                     // console.log(`OWO ${iter.toString().substring(0, 100)}`)
 
@@ -124,8 +123,7 @@ class JavaSourceReader extends JavacUtils {
                     case ClassItemType.Annotation: {
 
                         // @<whitespace>TestAnnotation.TestInner(a=1, b=2)
-                        if (!this.skipWhitespace(iter))
-                            return ClassParseResult.success(this.stripSelf());
+                        this.skipWhitespace(iter);
 
                         // We expect alphanumeric here
                         // @<T>estAnnotation.TestInner(a=1, b=2)
@@ -150,8 +148,7 @@ class JavaSourceReader extends JavacUtils {
                                 );
 
                             // @TestAnnotation<whitespace>.TestInner(a=1, b=2)
-                            if (!this.skipWhitespace(iter))
-                                break outer;
+                            this.skipWhitespace(iter);
 
                             annotationWords.push(word);
 
@@ -301,8 +298,8 @@ class JavaSourceReader extends JavacUtils {
         for (let i = 0; i < 100; i++) {
 
             // Skip whitespace
-            if (!this.skipWhitespace(iter))
-                break;
+            this.skipWhitespace(iter);
+            if (iter.isDone()) break;
 
             const c = iter.char();
             // console.log(`c: ${c}`)
@@ -493,8 +490,8 @@ class JavaSourceReader extends JavacUtils {
         for (let i = 0; i < 100; i++) {
 
             // Skip starting whitespace
-            if (!this.skipWhitespace(iter))
-                break;
+            this.skipWhitespace(iter);
+            if (iter.isDone()) break;
 
             const start = iter.index();
 
@@ -545,8 +542,8 @@ class JavaSourceReader extends JavacUtils {
                 case ClassItemType.Annotation: {
 
                     // @<whitespace>TestAnnotation.TestInner(a=1, b=2)
-                    if (!this.skipWhitespace(iter))
-                        break outer;
+                    this.skipWhitespace(iter);
+                    if (iter.isDone()) break;
 
                     // We expect alphanumeric here
                     // @<T>estAnnotation.TestInner(a=1, b=2)
@@ -566,8 +563,8 @@ class JavaSourceReader extends JavacUtils {
                         // console.log(`word: ${word}`)
 
                         // @TestAnnotation<whitespace>.TestInner(a=1, b=2)
-                        if (!this.skipWhitespace(iter))
-                            break outer;
+                        this.skipWhitespace(iter);
+                        if (iter.isDone()) break;
 
                         annotationWords.push(word);
 
