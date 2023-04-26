@@ -14,18 +14,7 @@ function test(iter, text) {
 
     const test = new JavacUtils(iter);
 
-    console.log(test.readUntil('{', iter, false));
 
-    const start = iter.index();
-    test.skipUntilClosingChar('{', iter)
-    const end = iter.index();
-    const classText = text.substring(start, end);
-    console.log(`classText: '${classText}'`)
-
-    iter = new Iterator(classText);
-    iter.next()
-    iter.removeLast()
-    test.skipAllBracketsUntilSemicolon(iter)
 
     return true;
 }
@@ -36,25 +25,38 @@ let classMaxField = null;
 let maxFunctions = 0;
 let classMaxFunctions = null;
 
+let maxFunctionLength = 0;
+let classMaxFunctionLength = null;
+
 function countFieldsAndFunctions(classes, fileName) {
     if (!classes || Object.keys(classes).length == 0) return;
     let numFields = 0;
     let numFunctions = 0;
+    let numFunctionLength = 0;
     for (let i = 0; i < classes.length; i++) {
         const data = classes[i];
         if ('body' in data) {
             if ('fields' in data.body)
                 numFields += data.body.fields.length;
-            if ('functions' in data.body)
+            if ('functions' in data.body) {
                 numFunctions += data.body.functions.length;
+                for (let func of data.body.functions) {
+                    const bodyLen = func.body?.length ?? 0;
+                    if (bodyLen > maxFunctionLength) {
+                        maxFunctionLength = bodyLen;
+                        classMaxFunctionLength = fileName + ' ' + func.header;
+                        console.log(`maxFunctionLength: ${maxFunctionLength}, classMaxFunctionLength: ${classMaxFunctionLength}`)
+                    }
+                }
+            }
         }
         const inner = data.innerClasses;
-        if (inner.length > 0) {
-            const len = inner.length;
-            for (let j = 0; j < len; j++) {
-                const innerObj = inner[j];
-                countFieldsAndFunctions(innerObj, fileName);
-            }
+        if (inner.length <= 0)
+            continue;
+        const len = inner.length;
+        for (let j = 0; j < len; j++) {
+            const innerObj = inner[j];
+            countFieldsAndFunctions(innerObj, fileName);
         }
     }
     if (numFields > maxFields) {
@@ -92,7 +94,7 @@ async function compileJavaSourceFile(fileName) {
         return null;
 
     // console.log(fileName)
-    const sourceReader = new JavaSourceReader(fileName, text, iter);
+    const sourceReader = new JavaSourceReader(fileName, iter);
     return sourceReader.parseSourceCode().then(json => {
         // console.log(json)
         // console.log(JSON.stringify(json, null, 4))
