@@ -644,140 +644,142 @@ function findErrors(output) {
         return new String(result, 0, len + resultOffset);
     `;
 
-    const info = {
-        name: 'main',
-        args: {
-            'String[]': 'args'
-        },
-        _static: true,
-        locals: []
-    };
-    const func = new JavaFunctionReader(
-        info,
-        new Iterator(text),
-        false
-    );
-    const output = func.parseFunctionCode();
-    console.log('info:', info)
-    console.log('output:', output)
-    fixStacks(output)
-    console.log(JSON.stringify(output, null, 4))
-    findErrors(output)
+    // const info = {
+    //     name: 'main',
+    //     args: {
+    //         'String[]': 'args'
+    //     },
+    //     _static: true,
+    //     locals: []
+    // };
+    // const func = new JavaFunctionReader(
+    //     info,
+    //     new Iterator(text),
+    //     false
+    // );
+    // const output = func.parseFunctionCode();
+    // console.log('info:', info)
+    // console.log('output:', output)
+    // fixStacks(output)
+    // console.log(JSON.stringify(output, null, 4))
+    // findErrors(output)
 
     // TODO: While parsing classes, if a function is marked as native,
     //  we shouldn't expect curly brackets, but a semicolon.
 
-    // const files = {
-    //     '1': 'testing/src/compilertesting/fields/CompilerTestV1.java',
-    //     '2': 'testing/src/compilertesting/fields/CompilerTestV2.java',
-    //     '3': 'testing/src/compilertesting/fields/CompilerTestV3.java',
-    //     '4': 'testing/src/compilertesting/fields/CompilerTestV4.java',
-    //     '5': 'testing/src/compilertesting/fields/CompilerTestV5.java',
-    //     '6': 'testing/src/compilertesting/fields/CompilerTestV6.java',
-    //
-    //     '100': 'testing/src/compilertesting/functions/CompilerTestV100.java',
-    //     '101': 'testing/src/compilertesting/functions/CompilerTestV101.java',
-    //     '102': 'testing/src/compilertesting/functions/CompilerTestV102.java',
-    //     '103': 'testing/src/compilertesting/functions/CompilerTestV103.java',
-    //     '104': 'testing/src/compilertesting/functions/CompilerTestV104.java',
-    //     '105': 'testing/src/compilertesting/functions/CompilerTestV105.java',
-    //
-    //     'test': 'testing/src/compilertesting/Test.java',
-    //
-    //     'anno0': 'testing/src/compilertesting/annotations/CompilerTestV1000.java',
-    //     'anno1': 'testing/src/compilertesting/annotations/CompilerTestV1001.java',
-    //     'anno2': 'testing/src/compilertesting/annotations/CompilerTestV1002.java',
-    //     'anno3': 'testing/src/compilertesting/annotations/CompilerTestV1003.java.bin',
-    //     'anno4': 'testing/src/compilertesting/annotations/CompilerTestV1004.java.bin',
-    //     'anno5': 'testing/src/compilertesting/annotations/CompilerTestV1005.java',
-    //
-    //     'inner1': 'testing/src/compilertesting/innerclasses/CompilerTestV110.java',
-    //     'inner2': 'testing/src/compilertesting/innerclasses/CompilerTestV111.java',
-    //     'inner3': 'testing/src/compilertesting/innerclasses/CompilerTestV112.java',
-    //     'inner4': 'testing/src/compilertesting/innerclasses/CompilerTestV113.java',
-    //
-    //     'fakeConstructor1': 'testing/src/compilertesting/functions/CompilerTestConstructorV10000.java',
-    //     'fakeConstructor2': 'testing/src/compilertesting/functions/CompilerTestConstructorV10001.java',
-    //     'fakeConstructor3': 'testing/src/compilertesting/functions/CompilerTestConstructorV10002.java',
-    //     'fakeConstructor4': 'testing/src/compilertesting/functions/CompilerTestConstructorV10003.java',
-    //     'fakeConstructor5': 'testing/src/compilertesting/functions/CompilerTestConstructorV10004.java',
-    //
-    //     'everything': 'testing/src/compilertesting/everything/CompilerTestV210.java',
-    //     'empty': 'testing/src/compilertesting/everything/CompilerTestV211.java',
-    //     'generics1': 'testing/src/compilertesting/everything/CompilerTestV212.java',
-    //     'generics2': 'testing/src/compilertesting/everything/CompilerTestV213.java',
-    //     'generics3': 'testing/src/compilertesting/everything/CompilerTestV214.java',
-    //
-    //     'java.lang.String': 'testing/java.7/java/lang/String.java',
-    //     'java.lang.Object': 'testing/java.7/java/lang/Object.java',
-    //     'java.lang.Integer': 'testing/java.7/java/lang/Integer.java',
-    //     'java.StringEditor': 'testing/java.7/com/sun/beans/editors/StringEditor.java',
-    //
-    //     'error1': 'testing/src/java7srclisting/errors/ErrorV1.java',
-    //     'error2': 'testing/src/java7srclisting/errors/ErrorV2.java',
-    //     'error3': 'testing/src/java7srclisting/errors/ErrorV3.java',
-    //     'error4': 'testing/src/java7srclisting/errors/ErrorV4.java',
-    //     'error5': 'testing/src/java7srclisting/errors/ErrorV5.java',
-    //     'error6': 'testing/src/java7srclisting/errors/ErrorV6.java',
-    //     'error7': 'testing/src/java7srclisting/errors/ErrorV7.java',
-    //     'error8': 'testing/src/java7srclisting/errors/ErrorV8.java',
-    //     'error9': 'testing/src/java7srclisting/errors/ErrorV9.java',
-    //     'error10': 'testing/src/java7srclisting/errors/ErrorV10.java',
-    //     'error11': 'testing/src/java7srclisting/errors/ErrorV11.java',
-    //     'error12': 'testing/src/java7srclisting/errors/ErrorV12.java',
-    //     'error13': 'testing/src/java7srclisting/errors/ErrorV13.java',
-    //     'error14': 'testing/src/java7srclisting/errors/ErrorV14.java',
-    //
-    //     'java7source': 'java7source'
-    // };
-    // const selectedFile = 'everything';
-    // const start = Date.now();
-    // const classes = [];
-    // if (selectedFile === 'java7source')
-    //     for (let url of java7source)
-    //         classes.push(await compileJavaSourceFile(url));
-    // else
-    //     classes.push(await compileJavaSourceFile(files[selectedFile]));
-    // const end = Date.now();
-    // console.log(`Execution time: ${end - start} ms`);
-    //
-    // console.log(`maxFields: ${maxFields}, classMaxField: ${classMaxField}`)
-    // console.log(`maxFunctions: ${maxFunctions}, classMaxField: ${classMaxFunctions}`)
-    // // TODO: Verify every single class:
-    // //       1. package
-    // //       2. annotations
-    // //       3. class header (access, type, name, extends, implements, generics)
-    // //       4. class data:
-    // //          a. fields: annotations, access, type, name
-    // //          b. functions: annotations, access, type, name, arguments
-    // //          c. innerClasses: annotations, access, type, name, extends, implements, generics
-    // for (let i = 0; i < classes.length; i++) {
-    //     const obj = classes[i];
-    //     const tops = obj.result.topLevelClasses;
-    //     for (let j = 0; j < tops.length; j++) {
-    //         const clz = tops[j];
-    //         if (i !== 0)
-    //             continue;
-    //         console.log(clz)
-    //         const imports = clz.imports;
-    //         if (imports.length <= 0)
-    //             continue;
-    //         for (let k = 0; k < imports.length; k++) {
-    //             const imp = imports[k];
-    //             if (imp.isStatic) continue;
-    //             const name = imp.name;
-    //             if (name.startsWith('compilertesting.')) continue;
-    //             if (name.endsWith('.*')) {
-    //                 // Special handling
-    //                 continue;
-    //             }
-    //             console.log(`Searching for: ${name}`)
-    //             const found = results.findClassByPkgAndName(name);
-    //             found.access = JavacUtils.accessFlagsToString(found.access);
-    //             console.log(`\tFound:`, found)
-    //         }
-    //     }
-    // }
+    const files = {
+        '1': 'testing/src/compilertesting/fields/CompilerTestV1.java',
+        '2': 'testing/src/compilertesting/fields/CompilerTestV2.java',
+        '3': 'testing/src/compilertesting/fields/CompilerTestV3.java',
+        '4': 'testing/src/compilertesting/fields/CompilerTestV4.java',
+        '5': 'testing/src/compilertesting/fields/CompilerTestV5.java',
+        '6': 'testing/src/compilertesting/fields/CompilerTestV6.java',
+
+        '100': 'testing/src/compilertesting/functions/CompilerTestV100.java',
+        '101': 'testing/src/compilertesting/functions/CompilerTestV101.java',
+        '102': 'testing/src/compilertesting/functions/CompilerTestV102.java',
+        '103': 'testing/src/compilertesting/functions/CompilerTestV103.java',
+        '104': 'testing/src/compilertesting/functions/CompilerTestV104.java',
+        '105': 'testing/src/compilertesting/functions/CompilerTestV105.java',
+
+        'test': 'testing/src/compilertesting/Test.java',
+
+        'anno0': 'testing/src/compilertesting/annotations/CompilerTestV1000.java',
+        'anno1': 'testing/src/compilertesting/annotations/CompilerTestV1001.java',
+        'anno2': 'testing/src/compilertesting/annotations/CompilerTestV1002.java',
+        'anno3': 'testing/src/compilertesting/annotations/CompilerTestV1003.java.bin',
+        'anno4': 'testing/src/compilertesting/annotations/CompilerTestV1004.java.bin',
+        'anno5': 'testing/src/compilertesting/annotations/CompilerTestV1005.java',
+
+        'inner1': 'testing/src/compilertesting/innerclasses/CompilerTestV110.java',
+        'inner2': 'testing/src/compilertesting/innerclasses/CompilerTestV111.java',
+        'inner3': 'testing/src/compilertesting/innerclasses/CompilerTestV112.java',
+        'inner4': 'testing/src/compilertesting/innerclasses/CompilerTestV113.java',
+
+        'fakeConstructor1': 'testing/src/compilertesting/functions/CompilerTestConstructorV10000.java',
+        'fakeConstructor2': 'testing/src/compilertesting/functions/CompilerTestConstructorV10001.java',
+        'fakeConstructor3': 'testing/src/compilertesting/functions/CompilerTestConstructorV10002.java',
+        'fakeConstructor4': 'testing/src/compilertesting/functions/CompilerTestConstructorV10003.java',
+        'fakeConstructor5': 'testing/src/compilertesting/functions/CompilerTestConstructorV10004.java',
+
+        'everything': 'testing/src/compilertesting/everything/CompilerTestV210.java',
+        'empty': 'testing/src/compilertesting/everything/CompilerTestV211.java',
+        'generics1': 'testing/src/compilertesting/everything/CompilerTestV212.java',
+        'generics2': 'testing/src/compilertesting/everything/CompilerTestV213.java',
+        'generics3': 'testing/src/compilertesting/everything/CompilerTestV214.java',
+
+        'java.lang.String': 'testing/java.7/java/lang/String.java',
+        'java.lang.Object': 'testing/java.7/java/lang/Object.java',
+        'java.lang.Integer': 'testing/java.7/java/lang/Integer.java',
+        'java.StringEditor': 'testing/java.7/com/sun/beans/editors/StringEditor.java',
+
+        'error1': 'testing/src/java7srclisting/errors/ErrorV1.java',
+        'error2': 'testing/src/java7srclisting/errors/ErrorV2.java',
+        'error3': 'testing/src/java7srclisting/errors/ErrorV3.java',
+        'error4': 'testing/src/java7srclisting/errors/ErrorV4.java',
+        'error5': 'testing/src/java7srclisting/errors/ErrorV5.java',
+        'error6': 'testing/src/java7srclisting/errors/ErrorV6.java',
+        'error7': 'testing/src/java7srclisting/errors/ErrorV7.java',
+        'error8': 'testing/src/java7srclisting/errors/ErrorV8.java',
+        'error9': 'testing/src/java7srclisting/errors/ErrorV9.java',
+        'error10': 'testing/src/java7srclisting/errors/ErrorV10.java',
+        'error11': 'testing/src/java7srclisting/errors/ErrorV11.java',
+        'error12': 'testing/src/java7srclisting/errors/ErrorV12.java',
+        'error13': 'testing/src/java7srclisting/errors/ErrorV13.java',
+        'error14': 'testing/src/java7srclisting/errors/ErrorV14.java',
+
+        'java7source': 'java7source'
+    };
+    const selectedFile = 'generics3';
+    const start = Date.now();
+    const classes = [];
+    if (selectedFile === 'java7source')
+        for (let url of java7source)
+            classes.push(await compileJavaSourceFile(url));
+    else
+        classes.push(await compileJavaSourceFile(files[selectedFile]));
+    const end = Date.now();
+    console.log(`Execution time: ${end - start} ms`);
+
+    console.log(`maxFields: ${maxFields}, classMaxField: ${classMaxField}`)
+    console.log(`maxFunctions: ${maxFunctions}, classMaxFunctions: ${classMaxFunctions}`)
+    console.log(`maxFunctionLength: ${maxFunctionLength}, classMaxFunctionLength: ${classMaxFunctionLength}`)
+    // TODO: Verify every single class:
+    //       1. package
+    //       2. annotations
+    //       3. class header (access, type, name, extends, implements, generics)
+    //       4. class data:
+    //          a. fields: annotations, access, type, name
+    //          b. functions: annotations, access, type, name, arguments
+    //          c. innerClasses: annotations, access, type, name, extends, implements, generics
+    for (let i = 0; i < classes.length; i++) {
+        const obj = classes[i];
+        const tops = obj.result.topLevelClasses;
+        if (!tops) continue;
+        for (let j = 0; j < tops.length; j++) {
+            const clz = tops[j];
+            if (i !== 0)
+                continue;
+            console.log(clz)
+            const imports = clz.imports;
+            if (imports.length <= 0)
+                continue;
+            for (let k = 0; k < imports.length; k++) {
+                const imp = imports[k];
+                if (imp.isStatic) continue;
+                const name = imp.name;
+                if (name.startsWith('compilertesting.')) continue;
+                if (name.endsWith('.*')) {
+                    // TODO: Special handling
+                    continue;
+                }
+                console.log(`Searching for: ${name}`)
+                const found = results.findClassByPkgAndName(name);
+                found.access = JavacUtils.accessFlagsToString(found.access);
+                console.log(`\tFound:`, found)
+            }
+        }
+    }
 
     // results.findClassByPkgAndName('java.io.File')
 
