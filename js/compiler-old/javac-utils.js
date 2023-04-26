@@ -1,4 +1,4 @@
-class JavacUtils {
+class JavacUtils_Old {
 
     /** @type string */
     text;

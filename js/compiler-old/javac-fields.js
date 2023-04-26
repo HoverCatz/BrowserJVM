@@ -1,4 +1,4 @@
-class JavaSourceFieldReader extends JavacUtils {
+class JavaSourceFieldReader_Old extends JavacUtils_Old {
 
     /** @type int */
     fieldAccess;

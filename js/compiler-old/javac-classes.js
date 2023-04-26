@@ -1,4 +1,4 @@
-class JavaSourceReader extends JavacUtils {
+class JavaSourceReader_Old extends JavacUtils_Old {
 
     /** @type string */
     fileName;
@@ -29,7 +29,7 @@ class JavaSourceReader extends JavacUtils {
 
     /**
      * All inner classes
-     * @type JavaSourceReader[]
+     * @type JavaSourceReader_Old[]
      * */
     innerClasses;
 
@@ -53,7 +53,7 @@ class JavaSourceReader extends JavacUtils {
      * @returns {string|json|Promise<{}|json>|boolean}
      * @throws {Error}
      */
-    async parseSourceCode_(throwErrors = true) {
+    async parseSourceCode_Old(throwErrors = true) {
         const iter = this.iter;
 
         // Read package
@@ -234,7 +234,7 @@ class JavaSourceReader extends JavacUtils {
                 case ClassItemType.FieldNoValue:
                 case ClassItemType.Field: {
                     const subText = this.text.substring(iterIndex);
-                    const fieldReader = new JavaSourceFieldReader();
+                    const fieldReader = new JavaSourceFieldReader_Old();
                     const endIndex = fieldReader.process(subText, iterIndex, itemType);
                     if (endIndex === false)
                         return false;
@@ -254,7 +254,7 @@ class JavaSourceReader extends JavacUtils {
                 } break;
                 case ClassItemType.Function: {
                     const subText = this.text.substring(iterIndex);
-                    const functionReader = new JavaSourceFunctionReader();
+                    const functionReader = new JavaSourceFunctionReader_Old();
                     const endIndex = functionReader.process(subText, iterIndex, itemType);
                     if (endIndex === false)
                         return false;
@@ -277,8 +277,8 @@ class JavaSourceReader extends JavacUtils {
                     const [ , close, ] = this.findOpenCloseRange(subText, 0, '{', '}');
                     subText = subText.substring(0, close) + '}';
 
-                    const sourceReader = new JavaSourceReader(this.fileName, subText, new Iterator(subText), true);
-                    const code = await sourceReader.parseSourceCode_();
+                    const sourceReader = new JavaSourceReader_Old(this.fileName, subText, new Iterator(subText), true);
+                    const code = await sourceReader.parseSourceCode_Old();
 
                     delete sourceReader.iter;
                     delete sourceReader.alphaNumericArray;

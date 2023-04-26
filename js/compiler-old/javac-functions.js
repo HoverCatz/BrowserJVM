@@ -1,4 +1,4 @@
-class JavaSourceFunctionReader extends JavacUtils {
+class JavaSourceFunctionReader_Old extends JavacUtils_Old {
 
     /** @type int */
     functionAccess;
