@@ -118,14 +118,14 @@ class JavaFunctionReader extends JavacUtils {
             // Find first of `=` `;` `(` `{`
             // while (true) {
             for (let i = 0; i < 100; i++) {
-                let [ indexFound, foundWhat ] = nocc.findFirstOfMany(['=', ';', '(', '{']);
-                // console.log(`${indexFound}, ${foundWhat}`)
+                let [ indexFound, foundWhat ] = nocc.findFirstOfMany(['=', ';', '[', '(', '{']);
+                console.log(`${indexFound}, ${foundWhat}`)
                 if (indexFound === -1) break;
 
                 // We found a field or variable assignment, continue searching
                 while (foundWhat === '=') {
                     [ indexFound, foundWhat ] = nocc.findFirstOfMany(
-                        ['=', ';', '(', '{'], false, false, true,
+                        ['=', ';', '[', '(', '{'], false, false, true,
                         indexFound + 1
                     );
                     // console.log(`${indexFound}, ${foundWhat}`)
@@ -133,7 +133,7 @@ class JavaFunctionReader extends JavacUtils {
                 }
 
                 // Skip any ({ brackets
-                if (foundWhat === '(' || foundWhat === '{') {
+                if (foundWhat === '[' || foundWhat === '(' || foundWhat === '{') {
                     this.skipAllBracketsBy([foundWhat], nocc, false);
                     continue;
                 }
