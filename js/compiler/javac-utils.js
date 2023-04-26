@@ -490,6 +490,7 @@ class Iterator {
         this.chars = text.split('');
         this.len = text.length;
         this.curr = 0;
+        this.bookmarks = {};
         this.init();
     }
 
