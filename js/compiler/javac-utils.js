@@ -410,12 +410,22 @@ class CIterator {
     * iterate(skipComments = true) {
         const curr = this.curr;
         const chars = this.chars;
+        const skip = [IterInsideWhat.IN_SINGLE, IterInsideWhat.IN_MULTI];
         for (let i = curr; i < this.len; i++) {
-            if (skipComments && this.isWhat([IterInsideWhat.IN_COMMENT], i))
+            if (skipComments && this.isWhat(skip, i))
                 yield ' ';
             else
                 yield chars[i - curr];
         }
+    }
+
+    setText(text) {
+        this.text = text;
+        this.chars = text.split('');
+        this.len = text.length;
+        this.curr = 0;
+        this.bookmarks = {};
+        this.init();
     }
 
     /**
