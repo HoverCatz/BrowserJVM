@@ -52,6 +52,55 @@ const indexes = async function (minimized = true) {
     return obj;
 };
 
+function fixStacks(output, pad = 1, lastKey = '') {
+    if (typeof output === 'string') {
+        // console.log(`${'    '.repeat(pad)}obj: '`, output, `'`)
+        return output;
+    } else if (output instanceof Array) {
+        // output = ['hello']
+        if (lastKey === 'stack' && output.length === 1)
+            return fixStacks(output[0], pad, lastKey)
+        for (let i = 0; i < output.length; i++) {
+            const obj = output[i];
+            // console.log(`${'    '.repeat(pad)}obj[a ${i}]:`, obj)
+            output[i] = fixStacks(obj, pad + 1);
+        }
+    } else {
+        // output = {
+        //     hello: 'world'
+        // }
+        const keys = Object.keys(output);
+        const len = keys.length;
+        if (lastKey === 'stack' && len === 1)
+            return fixStacks(output['stack'], pad, lastKey)
+        for (const key of keys) {
+            let obj = output[key];
+            // console.log(`${'    '.repeat(pad)}obj[b ${key}]:`, obj)
+            output[key] = fixStacks(obj, pad + 1, key);
+        }
+    }
+    return output;
+}
+function findErrors(output) {
+    if (typeof output === 'string')
+        ; // Ignore
+    else if (output instanceof Array)
+        for (let i = 0; i < output.length; i++)
+            findErrors(output[i]);
+    else {
+        const keys = Object.keys(output);
+        for (const key of keys) {
+            let obj = output[key];
+            if (key === 'error') {
+                console.error(`Error found:`, obj)
+                continue;
+            }
+            findErrors(obj);
+        }
+    }
+    return output;
+}
+
 (async () => {
 
     const results
@@ -259,22 +308,364 @@ const indexes = async function (minimized = true) {
     //     ;;;;test2;;;;
     // `;
 
+    // text = `
+    //     test((a, b) -> {
+    //             for (int i = 0; i < 3; i++) {
+    //                 test(a + i, b - i);
+    //             }
+    //     });
+    // `;
+
+    // text = `;;;
+    //     if (true) {
+    //         return new String() {
+    //             @Override
+    //             public String toString() {
+    //                 return this.toString() + " owo";
+    //             }
+    //         }.hashCode();
+    //     }
+    //     return "idk";
+    // `;
+
+    // text = `;;;
+    //     if (true) ;
+    //         return new String() {
+    //             @Override
+    //             public String toString() {
+    //                 return this.toString() + " owo";
+    //             }
+    //         }.hashCode();
+    //
+    //     owo;
+    //     { a; }
+    // `;
+
+    text = `new Object/*abc*/(){}.hashCode();owo;`;
+    text = `{int /* Hello */owo/* world */=/**/123/* :) */;}`;
+    text = `int /* Hello */owo/* world */=/**/123/* :) */;int /* Hello */owo/* world */=/**/456/* :) */;`;
     text = `
-        test((a, b) -> {
-                for (int i = 0; i < 3; i++) {
-                    test(a + i, b - i);
+    
+        int owo = new String("uwu") {
+            @Override
+            public String toString() {
+                return "oWo";
+            }
+        }.hashCode();
+        
+        String abc = "hello";
+        
+        int uwu = owo + 3;
+        
+        int test = test1();
+        
+        int test = test2(testA);
+        
+        int test = test3(test4(testB));
+        
+        if (true) test5();
+        
+        if (true) { test6(); }
+        
+    `;
+    text = `if (true) print(hello);`;
+    text = `
+        if (true) {
+            print(hello);
+        } else if (false) {
+            print(world);
+        } else {
+            print(ending);
+        }
+        if (true) 
+            print(abc);
+        else if (false) 
+            print(def);
+        else 
+            print(ghi);
+        
+    `;
+    text = `if(true)for(a;b;c){print(owo);print(hello);}`;
+    text = `
+        for (a; b; c) {
+            print(hello);
+            print(world);
+        }
+    `;
+    text = `
+        while (true) owo("uwu");    
+        while (true) { UwU("OwO"); }    
+    `;
+    text = `
+        try (String abc = new String() {
+            @Override
+            public String toString() {
+                return "owo";
+            }        
+        }) {
+            hello;
+            abc;
+        } catch (Exception e) {
+            world;
+            def;
+        } finally {
+            ending;
+            ghi;
+        }
+    `;
+    text = `("abc").toString();`;
+    text = `
+        return new String() {
+            @Override
+            public String toString() {
+                return this.toString() + " owo";
+            }
+        }.hashCode();
+    `;
+    text = `
+        new String() {
+            @Override
+            public String toString() {
+                return this.toString() + " owo";
+            }
+        }.hashCode();
+    `;
+    text = `
+
+            int foundFields = 0;
+            for (FieldNode field : clz.fields) {
+                if ((field.access & Opcodes.ACC_FINAL) == 0) continue; else
+                if ((field.access & Opcodes.ACC_SYNTHETIC) == 0) continue; else
+                if ((field.access & Opcodes.ACC_STATIC) == 0) continue; else
+                if (!field.desc.equalsIgnoreCase("I")) continue; else
+                if (field.name.length() > 2) continue;
+                foundFields++;
+            }
+            if (foundFields != 18)
+                return false;
+
+            // We should find all these
+            boolean foundIushr = false,
+                    foundIshl = false, foundIor = false,
+                    foundIand = false, foundIxor = false,
+                    foundIntegerReverse = false,
+                    foundIntegerRotateRight = false;
+
+            // But we shouldn't find these
+            boolean foundNoIshr = true, foundNoLxor = true;
+
+            // Should be 18!
+            int putStatics = 0;
+
+            for (MethodNode method : clz.methods) {
+                for (AbstractInsnNode insn : method.instructions.toArray()) {
+                    if (insn instanceof InsnNode) {
+                        int opcode = insn.getOpcode();
+                        if (opcode == Opcodes.IUSHR) foundIushr = true; else
+                        if (opcode == Opcodes.ISHL) foundIshl = true; else
+                        if (opcode == Opcodes.ISHR) foundNoIshr = false; /* oops! */ else
+                        if (opcode == Opcodes.IOR) foundIor = true; else
+                        if (opcode == Opcodes.IAND) foundIand = true; else
+                        if (opcode == Opcodes.IXOR) foundIxor = true; else
+                        if (opcode == Opcodes.LXOR) foundNoLxor = false; /* oops! */
+                    } else if (insn instanceof MethodInsnNode) {
+                        MethodInsnNode invoke = (MethodInsnNode) insn;
+                        if (!invoke.owner.equals("java/lang/Integer")) continue;
+                        if (invoke.name.equals("reverse")) foundIntegerReverse = true; else
+                        if (invoke.name.equals("rotateRight")) foundIntegerRotateRight = true;
+                    } else if (insn instanceof FieldInsnNode) {
+                        if (insn.getOpcode() != Opcodes.PUTSTATIC) continue;
+                        FieldInsnNode field = (FieldInsnNode) insn;
+                        if (!field.desc.equals("I")) continue;
+                        if (!field.owner.equals(clz.name)) continue;
+                        putStatics++;
+                    }
                 }
-        });
+            }
+
+            return foundIushr &&
+                   foundIshl &&
+                   foundNoIshr &&
+                   foundIor &&
+                   foundIand &&
+                   foundIxor &&
+                   foundNoLxor &&
+                   foundIntegerReverse &&
+                   foundIntegerRotateRight &&
+                   putStatics == 18;
     `;
 
+    text = `
+        String test = "Hello world :)";
+        // Hello world
+        System.out.println(test);
+        String test2 = true() ? "a" : "b";
+        String test3;
+        {
+            String test4;
+            for (abc) {
+                // Hello world
+                owo;
+            }
+            String test5;
+        }
+        if (false) {
+            String test6;
+            test6 = "owo";
+            return;
+        }
+        for (abc2) {
+            // Hello world 2
+            System.out.println("Hello world 2");
+        }
+        while (true) {
+            // Hello world 3
+            System.out.println("Hello world 3");
+        }
+    `;
+
+    text = `
+        boolean test = true;
+        if (test)
+            System.out.println(1);
+        test = false;
+        if (!test) {
+            System.out.println(2);
+            test = true;
+            System.out.println(3);
+            if (test && !test) {
+                System.out.println(4);
+                if (!test && test) {
+                    System.out.println(5);
+                    if (!test && !test) {
+                        System.out.println(6);
+                        if (test && test) {
+                            System.out.println(7);
+                        }
+                        System.out.println(9);
+                    }
+                    System.out.println(10);
+                }
+                System.out.println(11);
+            }
+            System.out.println(12);
+        }
+        System.out.println(13);
+    `;
+    text = `
+        if (locale == null) {
+            throw new NullPointerException();
+        }
+
+        int firstLower;
+        final int len = value.length;
+
+        /* Now check if there are any characters that need to be changed. */
+        scan: {
+           for (firstLower = 0 ; firstLower < len; ) {
+                int c = (int)value[firstLower];
+                int srcCount;
+                if ((c >= Character.MIN_HIGH_SURROGATE)
+                        && (c <= Character.MAX_HIGH_SURROGATE)) {
+                    c = codePointAt(firstLower);
+                    srcCount = Character.charCount(c);
+                } else {
+                    srcCount = 1;
+                }
+                int upperCaseChar = Character.toUpperCaseEx(c);
+                if ((upperCaseChar == Character.ERROR)
+                        || (c != upperCaseChar)) {
+                    break scan;
+                }
+                firstLower += srcCount;
+            }
+            return this;
+        }
+
+        char[] result = new char[len]; /* may grow */
+        int resultOffset = 0;  /* result may grow, so i+resultOffset
+         * is the write location in result */
+
+        /* Just copy the first few upperCase characters. */
+        System.arraycopy(value, 0, result, 0, firstLower);
+
+        String lang = locale.getLanguage();
+        boolean localeDependent =
+                (lang == "tr" || lang == "az" || lang == "lt");
+        char[] upperCharArray;
+        int upperChar;
+        int srcChar;
+        int srcCount;
+        for (int i = firstLower; i < len; i += srcCount) {
+            srcChar = (int)value[i];
+            if ((char)srcChar >= Character.MIN_HIGH_SURROGATE &&
+                (char)srcChar <= Character.MAX_HIGH_SURROGATE) {
+                srcChar = codePointAt(i);
+                srcCount = Character.charCount(srcChar);
+            } else {
+                srcCount = 1;
+            }
+            if (localeDependent) {
+                upperChar = ConditionalSpecialCasing.toUpperCaseEx(this, i, locale);
+            } else {
+                upperChar = Character.toUpperCaseEx(srcChar);
+            }
+            if ((upperChar == Character.ERROR)
+                    || (upperChar >= Character.MIN_SUPPLEMENTARY_CODE_POINT)) {
+                if (upperChar == Character.ERROR) {
+                    if (localeDependent) {
+                        upperCharArray =
+                                ConditionalSpecialCasing.toUpperCaseCharArray(this, i, locale);
+                    } else {
+                        upperCharArray = Character.toUpperCaseCharArray(srcChar);
+                    }
+                } else if (srcCount == 2) {
+                    resultOffset += Character.toChars(upperChar, result, i + resultOffset) - srcCount;
+                    continue;
+                } else {
+                    upperCharArray = Character.toChars(upperChar);
+                }
+
+                /* Grow result if needed */
+                int mapLen = upperCharArray.length;
+                if (mapLen > srcCount) {
+                    char[] result2 = new char[result.length + mapLen - srcCount];
+                    System.arraycopy(result, 0, result2, 0, i + resultOffset);
+                    result = result2;
+                }
+                for (int x = 0; x < mapLen; ++x) {
+                    result[i + resultOffset + x] = upperCharArray[x];
+                }
+                resultOffset += (mapLen - srcCount);
+            } else {
+                result[i + resultOffset] = (char)upperChar;
+            }
+        }
+        return new String(result, 0, len + resultOffset);
+    `;
+
+    const info = {
+        name: 'main',
+        args: {
+            'String[]': 'args'
+        },
+        _static: true,
+        locals: []
+    };
     const func = new JavaFunctionReader(
-        {},
-        new Iterator(text)
+        info,
+        new Iterator(text),
+        false
     );
     const output = func.parseFunctionCode();
+    console.log('info:', info)
     console.log('output:', output)
-    console.log('clz:', func.clz)
+    fixStacks(output)
     console.log(JSON.stringify(output, null, 4))
+    findErrors(output)
+
+    // TODO: While parsing classes, if a function is marked as native,
+    //  we shouldn't expect curly brackets, but a semicolon.
 
     // const files = {
     //     '1': 'testing/src/compilertesting/fields/CompilerTestV1.java',
