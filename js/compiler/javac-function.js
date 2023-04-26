@@ -1,231 +1,50 @@
 class JavaFunctionReader extends JavacUtils {
 
     /** @type {{}} */
-    clz;
+    info;
 
     /** @type [] */
     topLevelClasses;
 
-    constructor(clz, iter) {
+    /** @type boolean */
+    throwErrors;
+
+    constructor(info, iter, throwErrors = true) {
         super(iter);
-        this.clz = clz;
+        this.info = info;
+        this.throwErrors = throwErrors;
         console.log(`constructor(${this.text})`)
         console.log('')
     }
 
-    parseFunctionCode(throwErrors = true) {
+    static debugMode = false;
+    static maxTries = 500;
+    static currentTry = 0;
+
+    parseFunctionCode(stopAfterFirst = false) {
+        if (JavaFunctionReader.debugMode && ++JavaFunctionReader.currentTry >= JavaFunctionReader.maxTries)
+            return { 'error': 'Too many tries (debug)' };
+        // if (stopAfterFirst) console.log('stopAfterFirst')
         const output = { stack: [] };
         try {
             const iter = this.iter;
-            const text = iter.text;
 
+            let n = 0;
             // while (iter.curr < iter.len) {
-            for (let i = 0; i < 100; i++) {
+            for (let i = 0; i < 10; i++) {
                 this.skipWhitespace(iter);
+                if (iter.isDone()) break;
 
                 const start = iter.index();
-                let [ index, found ] =
-                    this.indexOfFirst(['=', ';', '(', '{'], iter);
-                if (index === -1) {
-                    index = iter.len;
-                    if (iter.curr == index)
-                        break;
-                    found = ';';
-                }
-                console.log(`index: ${index}, start: ${start}, found: ${found}`)
+                const [indexEnd, sub] = this.readOneStatement(iter.toString());
+                iter.setIndex(start + indexEnd);
 
-                if (found === '(') {
-                    // while (iter.curr < iter.len) {
-                    for (let i = 0; i < 100; i++) {
-                        found = this.skipAllBracketsUntilSemicolonBy([found], iter);
-                        if (!found) break;
-                    }
-                    [ index, found ] = this.indexOfFirst([';'], iter);
-                    if (index === -1)
-                        index = iter.len;
-                    iter.setIndex(index + 1);
-                    // console.log(`start: ${start}`)
-                    // console.log(`index: ${index}`)
-                    if (start == index)
-                        continue;
-                    const sub = text.substring(start, index).trim();
-                    if (sub.length === 0)
-                        break;
-                    console.warn('A ' + sub)
-                    console.log('')
+                // console.log(`! ADD: '${JSON.stringify(sub, null, 4)}'`)
+                output.stack.push(sub);
 
-                    output.stack.push(sub);
-                    continue;
-                }
-
-                if (found === '=') {
-                    // while (iter.curr < iter.len) {
-                    for (let i = 0; i < 100; i++) {
-                        found = this.skipAllBracketsUntilSemicolon(iter);
-                        if (!found) break;
-                    }
-                    [ index, found ] = this.indexOfFirst([';'], iter);
-                    if (index === -1)
-                        index = iter.len;
-                    // console.log(`! ${index} '${text.substring(start, index)}'`)
-                    found = ';';
-                }
-
-                if (found === ';') {
-                    iter.setIndex(index + 1);
-                    if (start == index)
-                        continue;
-                    const sub = text.substring(start, index).trim();
-                    if (sub.length === 0)
-                        break;
-                    const subIter = new Iterator(sub);
-                    console.warn('B ' + sub)
-                    console.log('')
-
-                    const subIterNoComments = new Iterator(sub);
-                    this.removeComments(subIterNoComments);
-                    const isIfCheck = subIterNoComments.iterMatch('^if\\s*\\(', false) ?
-                        'if' : (subIterNoComments.iterMatch('^else\\s*if\\s*\\(', false) ? 'else if' : (
-                            subIterNoComments.iterMatch('^else\\s*', false) ? 'else' : false
-                        ));
-                    if (!!isIfCheck) {
-                        console.log(`isIfCheck: ${isIfCheck}`)
-                        const ifOutput = this.parseIfCheck(subIter, isIfCheck);
-                        output.stack.push(ifOutput);
-                        continue;
-                    } else if (subIterNoComments.iterMatch('^for\\s*\\(', false)) {
-                        const forOutput = this.parseForLoop(subIter);
-                        output.stack.push(forOutput);
-                        continue;
-                    } else if (subIterNoComments.iterMatch('^while\\s*\\(', false)) {
-                        const whileOutput = this.parseWhileLoop(subIter);
-                        output.stack.push(whileOutput);
-                        continue;
-                    } else if (subIterNoComments.iterMatch('^try\\s*\\{', false) ||
-                            subIterNoComments.iterMatch('^try\\s*\\(', false)) {
-                        const tryOutput = this.parseTry(subIter);
-                        output.stack.push(tryOutput);
-                        continue;
-                    } else if (subIterNoComments.iterMatch('^catch\\s*\\(', false)) {
-                        const catchOutput = this.parseCatch(subIter);
-                        output.stack.push(catchOutput);
-                        continue;
-                    } else if (subIterNoComments.iterMatch('^finally\\s*\\{', false)) {
-                        const finallyOutput = this.parseFinally(subIter);
-                        output.stack.push(finallyOutput);
-                        continue;
-                    }
-
-                    output.stack.push(sub);
-                    continue;
-                } else if (found === '{') {
-                    this.skipAllBracketsUntilSemicolonBy(['{'], iter);
-                    this.skipWhitespace(iter);
-                    if (iter.char() === '.') {
-                        // We aren't done!
-                        const [ index, b ] =
-                            this.indexOfFirst([';'], iter);
-                        if (index === -1) break;
-                        iter.setIndex(index + 1);
-
-                        const end = iter.index();
-                        const sub = text.substring(start, end).trim();
-                        const subIter = new Iterator(sub);
-                        console.warn('A ' + sub)
-                        console.log('')
-
-                        const subIterNoComments = new Iterator(sub);
-                        this.removeComments(subIterNoComments);
-                        const isIfCheck = subIterNoComments.iterMatch('^if\\s*\\(', false) ?
-                            'if' : (subIterNoComments.iterMatch('^else\\s*if\\s*\\(', false) ? 'else if' : (
-                                subIterNoComments.iterMatch('^else\\s*', false) ? 'else' : false
-                            ));
-                        if (!!isIfCheck) {
-                            console.log(`isIfCheck: ${isIfCheck}`)
-                            const ifOutput = this.parseIfCheck(subIter, isIfCheck);
-                            output.stack.push(ifOutput);
-                            continue;
-                        } else if (subIterNoComments.iterMatch('^for\\s*\\(', false)) {
-                            const forOutput = this.parseForLoop(subIter);
-                            output.stack.push(forOutput);
-                            continue;
-                        } else if (subIterNoComments.iterMatch('^while\\s*\\(', false)) {
-                            const whileOutput = this.parseWhileLoop(subIter);
-                            output.stack.push(whileOutput);
-                            continue;
-                        } else if (subIterNoComments.iterMatch('^try\\s*\\{', false) ||
-                                subIterNoComments.iterMatch('^try\\s*\\(', false)) {
-                            const tryOutput = this.parseTry(subIter);
-                            output.stack.push(tryOutput);
-                            continue;
-                        } else if (subIterNoComments.iterMatch('^catch\\s*\\(', false)) {
-                            const catchOutput = this.parseCatch(subIter);
-                            output.stack.push(catchOutput);
-                            continue;
-                        } else if (subIterNoComments.iterMatch('^finally\\s*\\{', false)) {
-                            const finallyOutput = this.parseFinally(subIter);
-                            output.stack.push(finallyOutput);
-                            continue;
-                        }
-
-                        output.stack.push(sub);
-                        continue;
-                    }
-                    const end = iter.index();
-                    const innerText = text.substring(start, end).trim();
-                    const innerIter = new Iterator(innerText);
-                    const innerIterNoComments = new Iterator(innerText);
-                    this.removeComments(innerIterNoComments);
-                    const isIfCheck = innerIterNoComments.iterMatch('^if\\s*\\(', false) ?
-                        'if' : (innerIterNoComments.iterMatch('^else\\s*if\\s*\\(', false) ? 'else if' : (
-                            innerIterNoComments.iterMatch('^else\\s*', false) ? 'else' : false
-                        ));
-                    if (innerText.startsWith('{') && innerText.endsWith('}')) {
-                        innerIter.removeFirst(1);
-                        innerIter.removeLast(1);
-                    } else if (!!isIfCheck) {
-                        console.log(`isIfCheck: ${isIfCheck}`)
-                        const ifOutput = this.parseIfCheck(innerIter, isIfCheck);
-                        output.stack.push(ifOutput);
-                        continue;
-                    } else if (innerIterNoComments.iterMatch('^for\\s*\\(', false)) {
-                        const forOutput = this.parseForLoop(innerIter);
-                        output.stack.push(forOutput);
-                        continue;
-                    } else if (innerIterNoComments.iterMatch('^while\\s*\\(', false)) {
-                        const whileOutput = this.parseWhileLoop(innerIter);
-                        output.stack.push(whileOutput);
-                        continue;
-                    } else if (innerIterNoComments.iterMatch('^try\\s*\\{', false) ||
-                            innerIterNoComments.iterMatch('^try\\s*\\(', false)) {
-                        const tryOutput = this.parseTry(innerIter);
-                        output.stack.push(tryOutput);
-                        continue;
-                    } else if (innerIterNoComments.iterMatch('^catch\\s*\\(', false)) {
-                        const catchOutput = this.parseCatch(innerIter);
-                        output.stack.push(catchOutput);
-                        continue;
-                    } else if (innerIterNoComments.iterMatch('^finally\\s*\\{', false)) {
-                        const finallyOutput = this.parseFinally(innerIter);
-                        output.stack.push(finallyOutput);
-                        continue;
-                    }
-                    if (innerIter.text.trim().length === 0)
-                        continue;
-                    if (text.trim() === innerIter.text.trim()) {
-                        output.error = 'Infinite loop detected due to not correctly parsing text.';
-                        output.text = text;
-                        return output;
-                    }
-                    // console.warn('C ' + innerText)
-                    // console.log('')
-                    const innerParse = new JavaFunctionReader(this.clz, innerIter);
-                    const innerOutput = innerParse.parseFunctionCode();
-                    output.stack.push(innerOutput);
-                    continue;
-                }
-                throw new Error(`Invalid character found: '${found}' at index ${index}`);
-
+                // We only want to parse one
+                if (++n === 1 && stopAfterFirst)
+                    break;
             }
 
         } catch (e) {
@@ -236,287 +55,372 @@ class JavaFunctionReader extends JavacUtils {
         return output;
     }
 
-    /**
-     * Parse if check
-     * @param iter {Iterator}
-     * @param which {string} 'if', 'else if', 'else'
-     * @return {{}}
-     */
-    parseIfCheck(iter, which) {
-        let text = iter.text;
-        console.log(`parseIfCheck(${text}, ${which})`)
+    readOneStatement(text) {
+        const iter = new Iterator(text);
+        const nocc = iter.noComments(this);
 
-        let ifHeader = '';
-        let ifData = '';
+        // Start index
+        let start = nocc.index();
 
-        const start = iter.index();
+        let found;
+        const output = {};
 
-        // const start = iter.index();
-        if (which === 'else') {
-            if (!iter.iterMatch('^else\\s*', false)) return {
-                error: 'Invalid `else` statement.',
-                text: text
-            };
-            iter.removeFirst(4); // Remove 'else'
-            iter.init();
-            text = iter.text;
-            this.skipWhitespace(iter); // Remove whitespace
-            ifHeader = '';
-            ifData = text.substring(iter.index());
+        // Find label
+        found = nocc.iterFind('^\\s*(?<label>[a-zA-Z_][a-zA-Z0-9_]*)(?<colon>\\s*\\:)(?<end>)', false, false);
+        if (!!found) {
+            // Found label
+            nocc.next(found[0].length);
+            this.skipWhitespace(nocc);
+
+            const sub = nocc.text.substring(start, found[1].length);
+            console.log(`!!! LABEL: '${sub}'`)
+            console.log(`!!! LABEL found: '`, found, `'`)
+
+            output.label = found.groups.label;
+            console.log(`SUB: '${nocc.toString()}'`)
+        }
+
+        // Find open bracket
+        found = nocc.iterFind('^\\s*(?<open>\\{)', false, false);
+        if (!!found) {
+            // Found open curly bracket
+            const _start = nocc.index();
+            nocc.next(found.index);
+            this.skipWhitespace(nocc);
+
+            // Search closing curly bracket
+            this.skipAllBracketsBy(['{'], nocc, false);
+
+            // Remove open and closing curly bracket
+            const sub = nocc.text.substring(_start + found.index + 1, nocc.index() - 1);
+
+            // Re-parse new inner function code
+            const func = new JavaFunctionReader(
+                this.info,
+                new Iterator(sub),
+                this.throwErrors
+            );
+            const res = {...output, ...func.parseFunctionCode()}; // concat
+
+            return [nocc.index(), res];
+        }
+        // No curly bracket.
+
+        // Detect what comes next
+        const which = this.detectWhich(nocc);
+        console.log(`Found which: '${which}'`)
+
+        let foundSemicolon = false;
+        if (which === false ||
+                which == FuncWhich.RETURN ||
+                which == FuncWhich.NEW) {
+            // Simple statement
+            // Find first of `=` `;` `(` `{`
+            // while (true) {
+            for (let i = 0; i < 100; i++) {
+                let [ indexFound, foundWhat ] = nocc.findFirstOfMany(['=', ';', '(', '{']);
+                // console.log(`${indexFound}, ${foundWhat}`)
+                if (indexFound === -1) break;
+
+                // We found a field or variable assignment, continue searching
+                while (foundWhat === '=') {
+                    [ indexFound, foundWhat ] = nocc.findFirstOfMany(
+                        ['=', ';', '(', '{'], false, false, true,
+                        indexFound + 1
+                    );
+                    // console.log(`${indexFound}, ${foundWhat}`)
+                    if (indexFound === -1) break;
+                }
+
+                // Skip any ({ brackets
+                if (foundWhat === '(' || foundWhat === '{') {
+                    this.skipAllBracketsBy([foundWhat], nocc, false);
+                    continue;
+                }
+
+                // We found the end?
+                if (foundWhat === ';') {
+                    nocc.setIndex(indexFound + 1);
+                    foundSemicolon = true;
+                    break;
+                }
+            }
+
+            // Use start-end index
+            const sub = nocc.text.substring(start, nocc.index() - (foundSemicolon ? 1 : 0));
+            // console.log(sub);
+
+            output.type = 'simple_statement';
+            output.value = sub;
+        } else if (which === FuncWhich.IF ||
+                   which === FuncWhich.ELSE_IF ||
+                   which === FuncWhich.ELSE) {
+
+            let header = '';
+            // console.log(`! if-check found: '${which}'`)
+
+            let [ index, found ] = nocc.indexOfMany(['(']);
+            if (which !== FuncWhich.ELSE) { // We expect one parenthesis{
+                this.skipAllBracketsBy(['('], nocc, false);
+                header = nocc.text.substring(index, nocc.index());
+                // console.log(`! if-check header: '${header}'`)
+            } else {
+                [ index, found ] = nocc.indexOfMany(['{']);
+                if (index === -1) {
+                    this.skipWhitespace(nocc);
+                    nocc.next(4);
+                    this.skipWhitespace(nocc);
+                }
+                else
+                    nocc.setIndex(index)
+            }
+
+            const nextText = nocc.text.substring(nocc.index());
+            // console.log(`! if-check nextText: '`, nextText, `'`)
+            const func = new JavaFunctionReader(
+                this.info,
+                new Iterator(nextText),
+                false
+            );
+            const res = func.parseFunctionCode(true);
+            // console.log(`! if-check output: '`, res, `'`)
+            // console.log(`! if-check end-index: ${func.iter.index()}`)
+            nocc.setIndex(nocc.index() + func.iter.index())
+
+            output.type = which;
+            output.header = header;
+            output.data = res;
+        } else if (which === FuncWhich.FOR_LOOP) {
+
+            let header = '';
+            // console.log(`! for-loop found`)
+
+            const [ index, ] = nocc.indexOfMany(['(']);
+            if (index === -1) {
+                output.error = 'Couldn\'t find character `(`.';
+                output.text = text;
+                return [nocc.index(), output];
+            }
+
+            this.skipAllBracketsBy(['('], nocc, false);
+            header = nocc.text.substring(index, nocc.index());
+            // console.log(`! for-loop header: '${header}'`)
+
+            const nextText = nocc.text.substring(nocc.index());
+            // console.log(`! for-loop nextText: '`, nextText, `'`)
+            const func = new JavaFunctionReader(
+                this.info,
+                new Iterator(nextText),
+                false
+            );
+            const res = func.parseFunctionCode(true);
+            // console.log(`! for-loop output: '`, res, `'`)
+            // console.log(`! for-loop end-index: ${func.iter.index()}`)
+            nocc.setIndex(nocc.index() + func.iter.index())
+
+            output.type = which;
+            output.header = header;
+            output.data = res;
+        } else if (which === FuncWhich.WHILE_LOOP) {
+
+            let header = '';
+            // console.log(`! while-loop found`)
+
+            const [ index, ] = nocc.indexOfMany(['(']);
+            if (index === -1) {
+                output.error = 'Couldn\'t find character `(`.';
+                output.text = text;
+                return [nocc.index(), output];
+            }
+
+            this.skipAllBracketsBy(['('], nocc, false);
+            header = nocc.text.substring(index, nocc.index());
+            // console.log(`! while-loop header: '${header}'`)
+
+            const nextText = nocc.text.substring(nocc.index());
+            // console.log(`! while-loop nextText: '`, nextText, `'`)
+            const func = new JavaFunctionReader(
+                this.info,
+                new Iterator(nextText),
+                false
+            );
+            const res = func.parseFunctionCode(true);
+            // console.log(`! while-loop output: '`, res, `'`)
+            // console.log(`! while-loop end-index: ${func.iter.index()}`)
+            nocc.setIndex(nocc.index() + func.iter.index())
+
+            output.type = which;
+            output.header = header;
+            output.data = res;
+        } else if (which === FuncWhich.TRY) {
+
+            let header = '';
+            // console.log(`! try found`)
+
+            let [ index, found ] = nocc.indexOfMany(['(', '{']);
+            if (found === '(') { // We can expect one parenthesis
+                this.skipAllBracketsBy(['('], nocc, false);
+                header = nocc.text.substring(index, nocc.index());
+                // console.log(`! try header: '${header}'`)
+            }
+            else {
+                [ index, found ] = nocc.indexOfMany(['{']);
+                nocc.setIndex(index);
+            }
+            if (index === -1) {
+                output.error = 'Couldn\'t find character `{`.';
+                output.text = nocc.toString();
+                return [nocc.index(), output];
+            }
+
+            const nextText = nocc.text.substring(nocc.index());
+            // console.log(`! try nextText: '`, nextText, `'`)
+            const func = new JavaFunctionReader(
+                this.info,
+                new Iterator(nextText),
+                false
+            );
+            const res = func.parseFunctionCode(true);
+            // console.log(`! try output: '`, JSON.stringify(res, null, 4), `'`)
+            // console.log(`! try end-index: ${func.iter.index()}`)
+            nocc.setIndex(nocc.index() + func.iter.index())
+
+            output.type = which;
+            output.header = header;
+            output.data = res;
+        } else if (which === FuncWhich.TRY_CATCH) {
+
+            let header = '';
+            // console.log(`! try_catch found`)
+
+            let [ index, ] = nocc.indexOfMany(['(']);
+            if (index === -1) {
+                output.error = 'Couldn\'t find character `(`.';
+                output.text = nocc.toString();
+                return [nocc.index(), output];
+            }
+
+            this.skipAllBracketsBy(['('], nocc, false);
+            header = nocc.text.substring(index, nocc.index());
+            // console.log(`! try_catch header: '${header}'`);
+
+            const nextText = nocc.text.substring(nocc.index());
+            // console.log(`! try_catch nextText: '`, nextText, `'`)
+            const func = new JavaFunctionReader(
+                this.info,
+                new Iterator(nextText),
+                false
+            );
+            const res = func.parseFunctionCode(true);
+            // console.log(`! try_catch output: '`, JSON.stringify(res, null, 4), `'`)
+            // console.log(`! try_catch end-index: ${func.iter.index()}`)
+            nocc.setIndex(nocc.index() + func.iter.index())
+
+            output.type = which;
+            output.header = header;
+            output.data = res;
+        } else if (which === FuncWhich.TRY_FINALLY) {
+
+            let header = '';
+            // console.log(`! try_finally found`)
+
+            const [ index, ] = nocc.indexOfMany(['{']);
+            if (index === -1) {
+                output.error = 'Couldn\'t find character `{`.';
+                output.text = nocc.toString();
+                return [nocc.index(), output];
+            }
+            nocc.setIndex(index);
+
+            const nextText = nocc.text.substring(nocc.index());
+            // console.log(`! try_finally nextText: '`, nextText, `'`)
+            const func = new JavaFunctionReader(
+                this.info,
+                new Iterator(nextText),
+                false
+            );
+            const res = func.parseFunctionCode(true);
+            // console.log(`! try_finally output: '`, JSON.stringify(res, null, 4), `'`)
+            // console.log(`! try_finally end-index: ${func.iter.index()}`)
+            nocc.setIndex(nocc.index() + func.iter.index())
+
+            output.type = which;
+            output.header = header;
+            output.data = res;
         } else {
-            let [ openIndex, found ] =
-                this.indexOfFirst(['('], iter);
-            if (openIndex === -1) return {
-                error: 'Open-index for character `(` not found.'
-            };
-
-            this.skipAllBracketsUntilSemicolonBy(['('], iter);
-            const end = iter.index();
-
-            ifHeader = text.substring(openIndex, end).trim();
-            ifData = text.substring(end).trim();
+            console.log(`### WHAT IS THIS : ${which}`)
         }
-        console.log(`ifHeader: ${ifHeader}`)
-        console.log(`ifData: ${ifData}`)
 
-        const ifIter = new Iterator(ifData);
-        if (ifData.startsWith('{') && ifData.endsWith('}')) {
-            ifIter.removeFirst(1);
-            ifIter.removeLast(1);
-            ifIter.init();
-        }
-        const ifParse = new JavaFunctionReader(this.clz, ifIter);
-        const ifParsedData = ifParse.parseFunctionCode();
+        // Could be a single statement:
+        //      < println("hello world"); >                 // ( ;
+        //      < int owo; >                                // = ;
+        //      < int owo = 3; >                            // = ;
+        //      < int owo = test("uwu"); >                  // = ( ;
+        //      < int owo = test("uwu") ? 420 : 240; >      // = ( ;
+        //      <
+        //        int owo = new String("") {                // = ( {
+        //          @Override
+        //          public String toString() {              // ( { (ignored)
+        //              return "owo";                       // ;   (ignored)
+        //          }
+        //        }.hashCode();                             // ( ;
+        //      >
+        // Could also be an if statement, or a loop:
+        //      < if (true) >           ;                   // if (
+        //      < if (true) >           { }                 // if (
+        //      < for (a; b; c) >       ;                   // for (
+        //      < for (a; b; c) >       { }                 // for (
+        //      < while (true) >        ;                   // while (
+        //      < while (true) >        { }                 // while (
+        //      < do >                  ; while (true);     // do ;
+        //      < do >                  { } while (true);
 
-        const output = {
-            type: which,
-            header: ifHeader,
-            data: ifParsedData
-        };
-        return output;
+        return [nocc.index(), output];
     }
 
-    /**
-     * Parse for loop
-     * @param iter {Iterator}
-     * @return {{}}
-     */
-    parseForLoop(iter) {
-        const text = iter.text;
-        console.log(`parseForLoop(${text})`)
-
-        const [ openIndex, found ] = this.indexOfFirst(['('], iter);
-        if (openIndex === -1) return {
-            error: 'Open-index for character `(` not found.'
-        };
-
-        // const start = iter.index();
-        this.skipAllBracketsUntilSemicolonBy(['('], iter);
-        const end = iter.index();
-
-        const forHeader = text.substring(openIndex, end).trim();
-        const forData = text.substring(end).trim();
-        console.log(`forHeader: ${forHeader}`)
-        console.log(`forData: ${forData}`)
-
-        const forIter = new Iterator(forData);
-        if (forData.startsWith('{') && forData.endsWith('}')) {
-            forIter.removeFirst(1);
-            forIter.removeLast(1);
-            forIter.init();
-        }
-        const forParse = new JavaFunctionReader(this.clz, forIter);
-        const forParsedData = forParse.parseFunctionCode();
-
-        const output = {
-            type: 'for',
-            header: forHeader,
-            data: forParsedData
-        };
-        return output;
+    detectWhich(iter) {
+        iter.skipIgnores();
+        const isIfCheck = iter.iterMatch('^if\\s*\\(', false) ? FuncWhich.IF :
+            (iter.iterMatch('^else\\s*if\\s*\\(', false)                    ? FuncWhich.ELSE_IF : (
+                iter.iterMatch('^else\\s*', false)                          ? FuncWhich.ELSE : false
+            ));
+        if (!!isIfCheck)
+            return isIfCheck;
+        else if (iter.iterMatch('^for\\s*\\(', false))
+            return FuncWhich.FOR_LOOP;
+        else if (iter.iterMatch('^while\\s*\\(', false))
+            return FuncWhich.WHILE_LOOP;
+        else if (iter.iterMatch('^try\\s*\\{', false) ||
+                 iter.iterMatch('^try\\s*\\(', false))
+            return FuncWhich.TRY;
+        else if (iter.iterMatch('^catch\\s*\\(', false))
+            return FuncWhich.TRY_CATCH;
+        else if (iter.iterMatch('^finally\\s*\\{', false))
+            return FuncWhich.TRY_FINALLY;
+        else if (iter.iterMatch('^return\\s*', false))
+            return FuncWhich.RETURN;
+        else if (iter.iterMatch('^new\\s*[a-zA-Z_$]', false))
+            return FuncWhich.NEW;
+        return false;
     }
 
-    /**
-     * Parse while loop
-     * @param iter {Iterator}
-     * @return {{}}
-     */
-    parseWhileLoop(iter) {
-        const text = iter.text;
-        console.log(`parseWhileLoop(${text})`)
+}
 
-        const [ openIndex, found ] = this.indexOfFirst(['('], iter);
-        if (openIndex === -1) return {
-            error: 'Open-index for character `(` not found.'
-        };
-
-        // const start = iter.index();
-        this.skipAllBracketsUntilSemicolonBy(['('], iter);
-        const end = iter.index();
-
-        const whileHeader = text.substring(openIndex, end).trim();
-        const whileData = text.substring(end).trim();
-        console.log(`whileHeader: ${whileHeader}`)
-        console.log(`whileData: ${whileData}`)
-
-        const whileIter = new Iterator(whileData);
-
-        if (whileData.startsWith('{') && whileData.endsWith('}')) {
-            whileIter.removeFirst(1);
-            whileIter.removeLast(1);
-            whileIter.init();
-        }
-
-        const whileParse = new JavaFunctionReader(this.clz, whileIter);
-        const whileParsedData = whileParse.parseFunctionCode();
-
-        const output = {
-            type: 'while',
-            header: whileHeader,
-            data: whileParsedData
-        };
-        return output;
+class FuncWhich {
+    static IF = 'if';
+    static ELSE_IF = 'else_if';
+    static ELSE = 'else';
+    static FOR_LOOP = 'for_loop';
+    static WHILE_LOOP = 'while_loop';
+    static TRY = 'try';
+    static TRY_CATCH = 'try_catch';
+    static TRY_FINALLY = 'try_finally';
+    static RETURN = 'return';
+    static NEW = 'new';
+    static isIf(which) {
+        return which === FuncWhich.IF || which === FuncWhich.ELSE_IF || which === FuncWhich.ELSE;
     }
-
-    /**
-     * Parse Try
-     * @param iter {Iterator}
-     * @return {{}}
-     */
-    parseTry(iter) {
-        const text = iter.text;
-        console.log(`parseTry(${text})`)
-
-        // const start = iter.index();
-        let [ openIndex, found ] =
-            this.indexOfFirst(['('], iter);
-        let [ openIndex2, found2 ] =
-            this.indexOfFirst(['{'], iter);
-        let end = -1;
-        if (openIndex !== -1 && openIndex < openIndex2) {
-            // try-open-resource found!
-            openIndex2 = openIndex;
-            this.skipAllBracketsUntilSemicolonBy(['('], iter);
-            end = iter.index();
-        } else {
-            end = openIndex2;
-        }
-        if (end === -1) return {
-            error: 'Didn\'t find character {. c',
-            text: text
-        };
-
-        const tryHeader = text.substring(openIndex2, end).trim();
-        const tryData = text.substring(end).trim();
-        console.log(`tryHeader: ${tryHeader}`)
-        console.log(`tryData: ${tryData}`)
-
-        const tryIter = new Iterator(tryData);
-
-        if (tryData.startsWith('{') && tryData.endsWith('}')) {
-            tryIter.removeFirst(1);
-            tryIter.removeLast(1);
-            tryIter.init();
-        }
-
-        const tryParse = new JavaFunctionReader(this.clz, tryIter);
-        const tryParsedData = tryParse.parseFunctionCode();
-
-        const output = {
-            type: 'try',
-            header: tryHeader,
-            data: tryParsedData
-        };
-        return output;
+    static isTry(which) {
+        return which === FuncWhich.TRY || which === FuncWhich.TRY_CATCH || which === FuncWhich.TRY_FINALLY;
     }
-
-    /**
-     * Parse Catch
-     * @param iter {Iterator}
-     * @return {{}}
-     */
-    parseCatch(iter) {
-        const text = iter.text;
-        console.log(`parseCatch(${text})`)
-
-        // const start = iter.index();
-        let [ openIndex, found ] =
-            this.indexOfFirst(['('], iter);
-        if (openIndex !== -1)
-            // try-open-resource found!
-            this.skipAllBracketsUntilSemicolonBy(['('], iter);
-
-        const catchHeader = text.substring(openIndex, iter.index()).trim();
-
-        [ openIndex, found ] = this.indexOfFirst(['{'], iter);
-        const end = found === '{' ? openIndex - 1 : -1;
-        if (end === -1) return {
-            error: 'Didn\'t find character {. a',
-            text: text
-        };
-
-        const catchData = text.substring(end).trim();
-        console.log(`catchHeader: ${catchHeader}`)
-        console.log(`catchData: ${catchData}`)
-
-        const catchIter = new Iterator(catchData);
-
-        if (catchData.startsWith('{') && catchData.endsWith('}')) {
-            catchIter.removeFirst(1);
-            catchIter.removeLast(1);
-            catchIter.init();
-        }
-
-        const catchParse = new JavaFunctionReader(this.clz, catchIter);
-        const catchParsedData = catchParse.parseFunctionCode();
-
-        const output = {
-            type: 'catch',
-            header: catchHeader,
-            data: catchParsedData
-        };
-        return output;
-    }
-
-    /**
-     * Parse Finally
-     * @param iter {Iterator}
-     * @return {{}}
-     */
-    parseFinally(iter) {
-        const text = iter.text;
-        console.log(`parseFinally(${text})`)
-
-        // const start = iter.index();
-        let [ openIndex, found ] = this.indexOfFirst(['{'], iter);
-        const end = found === '{' ? openIndex - 1 : -1;
-        if (end === -1) return {
-            error: 'Didn\'t find character {. b',
-            text: text
-        };
-
-        const finallyHeader = text.substring(openIndex, end).trim();
-        const finallyData = text.substring(end).trim();
-        console.log(`finallyHeader: ${finallyHeader}`)
-        console.log(`finallyData: ${finallyData}`)
-
-        const finallyIter = new Iterator(finallyData);
-
-        if (finallyData.startsWith('{') && finallyData.endsWith('}')) {
-            finallyIter.removeFirst(1);
-            finallyIter.removeLast(1);
-            finallyIter.init();
-        }
-
-        const finallyParse = new JavaFunctionReader(this.clz, finallyIter);
-        const finallyParsedData = finallyParse.parseFunctionCode();
-
-        const output = {
-            type: 'finally',
-            header: finallyHeader,
-            data: finallyParsedData
-        };
-        return output;
-    }
-
 }
