@@ -56,7 +56,7 @@ class JavaFunctionReader extends JavacUtils {
     }
 
     readOneStatement(text) {
-        const iter = new Iterator(text);
+        const iter = new CIterator(text);
         const nocc = iter.noComments(this);
 
         // Start index
@@ -97,7 +97,7 @@ class JavaFunctionReader extends JavacUtils {
             // Re-parse new inner function code
             const func = new JavaFunctionReader(
                 this.info,
-                new Iterator(sub),
+                new CIterator(sub),
                 this.throwErrors
             );
             const res = {...output, ...func.parseFunctionCode()}; // concat
@@ -179,7 +179,7 @@ class JavaFunctionReader extends JavacUtils {
             // console.log(`! if-check nextText: '`, nextText, `'`)
             const func = new JavaFunctionReader(
                 this.info,
-                new Iterator(nextText),
+                new CIterator(nextText),
                 false
             );
             const res = func.parseFunctionCode(true);
@@ -210,7 +210,7 @@ class JavaFunctionReader extends JavacUtils {
             // console.log(`! for-loop nextText: '`, nextText, `'`)
             const func = new JavaFunctionReader(
                 this.info,
-                new Iterator(nextText),
+                new CIterator(nextText),
                 false
             );
             const res = func.parseFunctionCode(true);
@@ -241,7 +241,7 @@ class JavaFunctionReader extends JavacUtils {
             // console.log(`! while-loop nextText: '`, nextText, `'`)
             const func = new JavaFunctionReader(
                 this.info,
-                new Iterator(nextText),
+                new CIterator(nextText),
                 false
             );
             const res = func.parseFunctionCode(true);
@@ -277,7 +277,7 @@ class JavaFunctionReader extends JavacUtils {
             // console.log(`! try nextText: '`, nextText, `'`)
             const func = new JavaFunctionReader(
                 this.info,
-                new Iterator(nextText),
+                new CIterator(nextText),
                 false
             );
             const res = func.parseFunctionCode(true);
@@ -308,7 +308,7 @@ class JavaFunctionReader extends JavacUtils {
             // console.log(`! try_catch nextText: '`, nextText, `'`)
             const func = new JavaFunctionReader(
                 this.info,
-                new Iterator(nextText),
+                new CIterator(nextText),
                 false
             );
             const res = func.parseFunctionCode(true);
@@ -336,7 +336,7 @@ class JavaFunctionReader extends JavacUtils {
             // console.log(`! try_finally nextText: '`, nextText, `'`)
             const func = new JavaFunctionReader(
                 this.info,
-                new Iterator(nextText),
+                new CIterator(nextText),
                 false
             );
             const res = func.parseFunctionCode(true);

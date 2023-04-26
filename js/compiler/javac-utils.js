@@ -1,6 +1,6 @@
 class JavacUtils {
 
-    /** @type Iterator */
+    /** @type CIterator */
     iter;
 
     /** @type boolean */
@@ -34,7 +34,7 @@ class JavacUtils {
     ];
 
     /**
-     * @param iter {Iterator}
+     * @param iter {CIterator}
      */
     constructor(iter) {
         this.iter = iter;
@@ -86,13 +86,13 @@ class JavacUtils {
     }
 
     /**
-     * @param iter {Iterator}
+     * @param iter {CIterator}
      * @returns {[int,int|null|false]|false}
      * @throws {Error}
      */
     detectNextItem(iter) {
-        if (!this.skipWhitespace(iter))
-            return false;
+        this.skipWhitespace(iter);
+        if (iter.isDone()) return false;
         const [ index, first ] = this.indexOfFirst(['@', '{', ';', '=', '('], iter);
         if (index === false || index === -1)
             return [ -1, false ];
@@ -118,7 +118,7 @@ class JavacUtils {
      * Skip until we find the next closing character:
      * ( -> ), { -> }, [ -> ]
      * @param char {string}
-     * @param iter {Iterator}
+     * @param iter {CIterator}
      */
     skipUntilClosingChar(char, iter = null) {
         iter = (iter === null ? this.iter : iter);
@@ -253,7 +253,7 @@ class JavacUtils {
      * Removes comments from the iterator.
      * This replaces all comment-characters (ignored indexes), with whitespaces.
      * We do this so that we can have a comment-free string, while keeping the original char indexes.
-     * @param iter {Iterator}
+     * @param iter {CIterator}
      */
     removeComments(iter = null) {
         iter = (iter === null ? this.iter : iter);
@@ -338,10 +338,13 @@ class ClassParseResult {
     /** @type string */
     reason;
 
+    /** @type any */
+    result = null;
+
     static of(reason, result = null) {
         const output = new ClassParseResult();
-        output.reason = reason;
         output.result = result;
+        output.reason = reason;
         return output;
     }
 
@@ -350,6 +353,10 @@ class ClassParseResult {
         output.result = result;
         output.reason = ClassParseResultReason.Success;
         return output;
+    }
+
+    static isSuccess(result) {
+        return result.reason === ClassParseResultReason.Success || result.reason === ClassParseResultReason.SuccessButAbrupt;
     }
 
 }
@@ -363,7 +370,7 @@ class ClassParseResultReason {
 
 }
 
-class Iterator {
+class CIterator {
 
     /** @type string */
     text;
@@ -627,6 +634,11 @@ class Iterator {
         return toString.match(regex);
     }
 
+    subString(start = 0, end = this.len) {
+        if (end < 0) end = this.len - -end; // ik
+        return this.text.substring(start, end);
+    }
+
     toString() {
         const len = this.len;
         const chars = this.chars;
@@ -756,7 +768,7 @@ class Iterator {
     }
 
     noComments(instance, index = 0, skipWhitespace = true) {
-        const noComments = new Iterator(this.text.substring(index).trim());
+        const noComments = new CIterator(this.text.substring(index).trim());
         instance.removeComments(noComments);
         if (skipWhitespace)
             instance.skipWhitespace(noComments);

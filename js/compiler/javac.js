@@ -88,7 +88,7 @@ async function compileJavaSourceFile(fileName) {
     //        //class-data
     //     }
     // `;
-    const iter = new Iterator(text);
+    const iter = new CIterator(text);
 
     if (!!test(iter, text))
         return null;
