@@ -19,10 +19,10 @@ import static java.lang.Math.max; // Static import
 
 // Annotations with strings containing special characters
 @MyClassAnnotation(
-        value = "Employee class {{()}}[]",
+        value = "Employee class ([{",
         inner = @MyClassAnnotation.TestInner("hello")
 )
-@SuppressWarnings(value = {"unchecked", "rawtypes", "Using ()[]{} in a string"})
+@SuppressWarnings(value = {"unchecked", "rawtypes", "Using ([{ in a string"})
 public class CompilerTestV210<T extends Number>
         extends Person<T>
         implements Comparable<CompilerTestV210<T>>, Serializable {
