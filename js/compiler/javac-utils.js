@@ -164,7 +164,7 @@ class JavacUtils {
 
         const [ index, found ] =
                 iter.indexOfMany(chars.concat([';']));
-        console.log(`firstFound: ${found ?? -1}, index: ${index}`)
+        // console.log(`firstFound: ${found ?? -1}, index: ${index}`)
         if (index === -1)
             return false;
         if (found !== ';')
