@@ -26,11 +26,11 @@ public class Test {
     void testLoop2(int a) {
         do {
             testLoop2(69);
-        } while (true);
+        } while (a != 69);
     }
 
     void testLoop3(int a) {
-        while (true) {
+        while (a != 420) {
             testLoop3(420);
         }
     }
