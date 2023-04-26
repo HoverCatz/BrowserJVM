@@ -249,34 +249,6 @@ class JavacUtils {
         return output;
     }
 
-    readUntil(c, iter = null, include = true) {
-        iter = (iter === null ? this.iter : iter);
-        let output = '';
-        while (true) {
-            const char = iter.char();
-            if (!char) {
-                this.done = true;
-                return false;
-            }
-            if (char === c) {
-                if (include) {
-                    output += char;
-                    if (!iter.next()) {
-                        this.done = true;
-                        return false;
-                    }
-                }
-                break;
-            }
-            output += char;
-            if (!iter.next()) {
-                this.done = true;
-                return false;
-            }
-        }
-        return output;
-    }
-
     /**
      * Removes comments from the iterator.
      * This replaces all comment-characters (ignored indexes), with whitespaces.
