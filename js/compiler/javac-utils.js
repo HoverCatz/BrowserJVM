@@ -71,7 +71,7 @@ class JavacUtils {
      * @returns {boolean}
      */
     isWhitespace(char) {
-        return /\s/.test(char);
+        return /\s/.test(char) || char === '\0';
     }
 
     /**
