@@ -16,7 +16,8 @@ public enum ErrorV10 {
     },
     TEST2 {
         // Any fields/functions here
-    };
+    },
+    TEST3; // None, nothing.
 
     ErrorV10(int i) {
     }
