@@ -7,7 +7,7 @@
 
 */
 
-async function compileJavaSourceFile(fileName) {
+async function compileJavaSourceFile_Old(fileName) {
     const response = await fetch(fileName);
     const text = await response.text();
     const iter = new Iterator(text);
