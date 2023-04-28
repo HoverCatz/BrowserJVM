@@ -77,7 +77,7 @@ async function compileJavaSourceFile(fileName) {
         console.log('Fetch failed')
         return false;
     }
-    const text = await response.text();
+    const text = (await response.text()) + '\0'; // Add trailing-zero
     // const text = `hello "abc" world;`;
     // const text = `
     //     package test1.test2.test3;
@@ -100,9 +100,7 @@ async function compileJavaSourceFile(fileName) {
         // console.log(JSON.stringify(json, null, 4))
         console.log('done')
 
-        if (json && json.result) {
-            countFieldsAndFunctions(json.result.topLevelClasses, fileName)
-        }
+        // if (json && json.result) countFieldsAndFunctions(json.result.topLevelClasses, fileName)
 
         return json;
     }).catch(error => {
