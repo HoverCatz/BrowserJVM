@@ -85,24 +85,6 @@ class JavacUtils {
         return /^[$A-Za-z_*][\w$]*$/.test(name);
     }
 
-    /**
-     * @param iter {CIterator}
-     * @returns {[int,int|null|false]|false}
-     * @throws {Error}
-     */
-    detectNextItem(iter) {
-        this.skipWhitespace(iter);
-        if (iter.isDone()) return false;
-        const [ index, first ] = this.indexOfFirst(['@', '{', ';', '=', '('], iter);
-        if (index === false || index === -1)
-            return [ -1, false ];
-        const type = this.charToType(first);
-        if (type === '')
-            return [ -2 - index, first ];
-        //    throw new Error(`Unknown type '${first}' at index ${index}.`);
-        return [ index, type ];
-    }
-
     charToType(char) {
         switch (char) {
             case '@': return ClassItemType.Annotation;
@@ -112,6 +94,24 @@ class JavacUtils {
             case '(': return ClassItemType.Function;
         }
         return '';
+    }
+
+    /**
+     * @param iter {CIterator}
+     * @returns {[int,int|null|false]|false}
+     * @throws {Error}
+     */
+    detectNextItem(iter) {
+        iter.skipWhitespace();
+        if (iter.isDone()) return false;
+        const [ index, first ] = iter.findFirstOfMany(['@', '{', ';', '=', '(']);
+        if (index === false || index === -1)
+            return [ -1, false ];
+        const type = this.charToType(first);
+        if (type === '')
+            return [ -2 - index, first ];
+        //    throw new Error(`Unknown type '${first}' at index ${index}.`);
+        return [ index, type ];
     }
 
     /**
@@ -129,14 +129,14 @@ class JavacUtils {
 
         let count = 0;
 
-        let len = iter.len;
+        const len = iter.len;
         for (let i = iter.curr; i < len; i++) {
             const c = iter.char();
 
             // console.log(`c: ${c}, ignored: ${iter.isIgnore(i)}`)
 
             iter.next();
-            if (iter.isIgnore(i))
+            if (iter.isIgnore(i, true))
                 continue;
 
             if (c === char) {
@@ -163,7 +163,7 @@ class JavacUtils {
         iter = (iter === null ? this.iter : iter);
 
         const [ index, found ] =
-                iter.indexOfMany(chars.concat([';']));
+                iter.findFirstOfMany(chars.concat([';']));
         // console.log(`firstFound: ${found ?? -1}, index: ${index}`)
         if (index === -1)
             return false;
@@ -183,7 +183,7 @@ class JavacUtils {
     skipAllBracketsBy(find, iter = null, recursive = true) {
         iter = (iter === null ? this.iter : iter);
 
-        const [ index, found ] = iter.indexOfMany(find);
+        const [ index, found ] = iter.findFirstOfMany(find);
         // console.log(`firstFound: ${index}, ${found}`)
         if (index === -1)
             return;
@@ -235,7 +235,7 @@ class JavacUtils {
 
     readAlphaNumeric(iter = null, isPeek = false) {
         iter = (iter === null ? this.iter : iter);
-        this.skipWhitespace(iter);
+        iter.skipWhitespace();
         let output = '';
         for (let i = iter.curr, n = 0; i < iter.len; i++, n++) {
             let c;
@@ -399,12 +399,27 @@ class CIterator {
      */
     ignoredIndexes;
 
-    constructor(text) {
+    /**
+     * All indexes where it's either inside (and hasn't left yet):
+     * 1. (
+     * 2. [
+     * 3. {
+     * @type [(string,int)|false]
+     */
+    inBrackets;
+
+    constructor(text, noComments = false) {
         this.text = text;
-        this.chars = text.split('');
-        this.len = text.length;
-        this.curr = 0;
-        this.init();
+        if (noComments) {
+            const nocc = this.noComments();
+            this.setText(nocc.text);
+        } else {
+            this.chars = text.split('');
+            this.len = text.length;
+            this.curr = 0;
+            this.bookmarks = {};
+            this.init();
+        }
     }
 
     * iterate(skipComments = true) {
@@ -432,8 +447,12 @@ class CIterator {
      * Check whether the current index should be ignored,
      * AKA current char is inside a comment.
      */
-    isIgnore(i = 0) {
-        return this.isWhat([IterInsideWhat.IN_SINGLE, IterInsideWhat.IN_MULTI], i);
+    isIgnore(i = this.curr, isStringAndCharAlsoIgnored = false) {
+        const skip = isStringAndCharAlsoIgnored ? [
+            IterInsideWhat.IN_SINGLE, IterInsideWhat.IN_MULTI,
+            IterInsideWhat.IN_STRING, IterInsideWhat.IN_CHAR
+        ] : [IterInsideWhat.IN_SINGLE, IterInsideWhat.IN_MULTI];
+        return this.isWhat(skip, i);
     }
 
     /**
@@ -469,18 +488,34 @@ class CIterator {
             IterInsideWhat.IN_SINGLE,
             IterInsideWhat.IN_MULTI
         ];
-        while (this.isWhat(skip, this.curr))
-            if (!this.next())
-                break;
+        while (this.isWhat(skip, this.curr) &&
+              !this.isDone())
+            this.next();
     }
 
-    setText(text) {
-        this.text = text;
-        this.chars = text.split('');
-        this.len = text.length;
-        this.curr = 0;
-        this.bookmarks = {};
-        this.init();
+    isInBracket(i = 0, minus = false) {
+        const brackets = this.getInBracket(i, minus);
+        const total = brackets.A + brackets.B + brackets.C;
+        if (i > 0) {
+            const prev = this.getInBracket(i - 1, minus);
+            if (prev) {
+                const prevTotal = prev.A + prev.B + prev.C;
+                if (prevTotal === 0 && total === 1)
+                    return false;
+            }
+        }
+        return total > 0;
+    }
+
+    getInBracket(i = 0, minus = false) {
+        let brackets = this.inBrackets[i];
+        if (minus)
+            brackets = {
+                A: brackets.A - minus.A,
+                B: brackets.B - minus.B,
+                C: brackets.C - minus.C
+            };
+        return brackets;
     }
 
     index() {
@@ -575,31 +610,10 @@ class CIterator {
         return this.indexOfMany(find, startAt, skipComments, false);
     }
 
-    indexOfMany(find, startAt = this.curr, skipComments = true, forward = true) {
-        if (typeof find === 'string')
-            find = [find];
-        const len = this.len;
-        const chars = this.chars;
-        // console.log(`indexOfMany(${find},    ${startAt},    ${skipComments}),
-        //     len: ${len}, chars: '${chars.join('').trim().substring(startAt)}'`)
-        const add = forward ? 1 : -1;
-        for (let i = startAt; forward ? (i < len) : (i => 0); i += add) {
-            // console.log(`indexOfMany, i: ${i}, char: ${chars[i]}`)
-            if (skipComments && this.isIgnore(i))
-                continue;
-            else if (find.includes(chars[i])) {
-                // console.log(`!!!`, i, chars[i])
-                return [ i, chars[i] ];
-            }
-        }
-        return [ -1, ];
-    }
-
-    findFirstOfMany(find,
-                    includeChar = false,
-                    jumpTo = false,
-                    jumpOver = true,
-                    startIndex = this.curr
+    indexOfMany(find,
+                startAt = this.curr,
+                skipComments = true,
+                forward = true
     ) {
         if (typeof find === 'string')
             find = [find];
@@ -609,16 +623,48 @@ class CIterator {
             IterInsideWhat.IN_SINGLE, IterInsideWhat.IN_MULTI,
             IterInsideWhat.IN_STRING, IterInsideWhat.IN_CHAR
         ];
-        for (let i = startIndex; i < len; i++) {
-            if (this.isWhat(skip, i))
+        const add = forward ? 1 : -1;
+        for (let i = startAt; forward ? (i < len) : (i => 0); i += add) {
+            if (skipComments && this.isWhat(skip, i))
                 continue;
             const c = chars[i];
+            if (!find.includes(c))
+                continue;
+            return [ i, chars[i] ];
+        }
+        return [ -1, ];
+    }
+
+    findFirstOfMany(find,
+                    includeChar = false,
+                    jumpTo = false,
+                    jumpOver = true,
+                    startIndex = this.curr,
+                    zeroBrackets = false
+    ) {
+        if (typeof find === 'string')
+            find = [find];
+        const len = this.len;
+        const chars = this.chars;
+        const skip = [
+            IterInsideWhat.IN_SINGLE, IterInsideWhat.IN_MULTI,
+            IterInsideWhat.IN_STRING, IterInsideWhat.IN_CHAR
+        ];
+        const brackets = this.getInBracket(startIndex);
+        // console.log(`starting brackets:`, brackets)
+        for (let i = startIndex; i < len; i++) {
+            const c = chars[i];
+            if (this.isWhat(skip, i))
+                continue;
+            // console.log(`i: ${i}, c: ${c}, inBracket: ${this.isInBracket(i, brackets)}, brackets:`, this.getInBracket(i))
+            if (zeroBrackets && this.isInBracket(i, brackets))
+                continue;
             if (!find.includes(c))
                 continue;
             if (jumpTo) this.setIndex(jumpOver ? i + 1 : i);
             return [includeChar ? i + 1 : i, c];
         }
-        return [-1,];
+        return [ -1, null ];
     }
 
     iterMatch(str, caseInsensitive = true, multiLine = true) {
@@ -636,10 +682,10 @@ class CIterator {
         return toString.match(regex) !== null;
     }
 
-    iterFind(str, caseInsensitive = true, multiLine = true) {
+    iterFind(str, caseSensitive = true, multiLine = true) {
         const toString = this.toString();
         const regex = new RegExp(str,
-            (caseInsensitive ? 'i' : '') + (multiLine ? 'm' : '')
+            (caseSensitive ? '' : 'i') + (multiLine ? 'm' : '')
         );
         return toString.match(regex);
     }
@@ -669,13 +715,28 @@ class CIterator {
         const len = this.len;
         const chars = this.chars;
 
-        this.ignoredIndexes = [...Array(this.len)];
-        for (let i = 0; i < len; i++) {
-            this.ignoredIndexes[i] = 1;
+        let A = 0, // (
+            B = 0, // [
+            C = 0; // {
 
-            const p = i < 0 ? '\n' : chars[i - 1];
+        this.ignoredIndexes = [...Array(this.len)];
+        this.inBrackets = [...Array(this.len)];
+        for (let i = 0; i < len; i++) {
+            this.ignoredIndexes[i] = IterInsideWhat.PURE;
+            if (i === 0)
+                this.inBrackets[i] = { A: A, B: B, C: C };
+            else {
+                const previousBrackets = this.inBrackets[i - 1];
+                this.inBrackets[i] = {
+                    A: previousBrackets.A,
+                    B: previousBrackets.B,
+                    C: previousBrackets.C
+                };
+            }
+
+            const p = (i === 0) ? '\0' : chars[i - 1];
             const c = chars[i];
-            const n = i < len - 1 ? chars[i + 1] : '\n';
+            const n = i < len - 1 ? chars[i + 1] : '\0';
 
             // console.log(`c: ${c}`)
 
@@ -685,6 +746,7 @@ class CIterator {
                     isInChar = false;
                     i++;
                     this.ignoredIndexes[i] = IterInsideWhat.IN_CHAR;
+                    this.inBrackets[i] = this.inBrackets[i - 1];
                     // console.log('Leaving char')
                 }
                 continue;
@@ -723,6 +785,7 @@ class CIterator {
                     // console.log('Leaving multi')
                     i++;
                     this.ignoredIndexes[i] = IterInsideWhat.IN_MULTI;
+                    this.inBrackets[i] = this.inBrackets[i - 1];
                 }
                 continue;
             }
@@ -745,6 +808,7 @@ class CIterator {
                     // console.log('Entering and Exited string')
                     i++;
                     this.ignoredIndexes[i] = IterInsideWhat.IN_STRING;
+                    this.inBrackets[i] = this.inBrackets[i - 1];
                 }
                 continue;
             }
@@ -756,6 +820,7 @@ class CIterator {
                 this.ignoredIndexes[i] = IterInsideWhat.IN_SINGLE;
                 i++;
                 this.ignoredIndexes[i] = IterInsideWhat.IN_SINGLE;
+                this.inBrackets[i] = this.inBrackets[i - 1];
                 continue;
             }
 
@@ -766,23 +831,80 @@ class CIterator {
                 this.ignoredIndexes[i] = IterInsideWhat.IN_MULTI;
                 i++;
                 this.ignoredIndexes[i] = IterInsideWhat.IN_MULTI;
+                this.inBrackets[i] = this.inBrackets[i - 1];
                 continue;
             }
+
+            if (c === '(')
+                this.inBrackets[i].A++;
+            else if (c === ')')
+                this.inBrackets[i].A--;
+
+            else if (c === '[')
+                this.inBrackets[i].B++;
+            else if (c === ']')
+                this.inBrackets[i].B--;
+
+            else if (c === '{')
+                this.inBrackets[i].C++;
+            else if (c === '}')
+                this.inBrackets[i].C--;
+            // console.log(`${c} this.inBrackets[${i}]:`, this.inBrackets[i])
 
             this.ignoredIndexes[i] = IterInsideWhat.PURE;
         }
 
-        // for (let i = 0; i < len; i++) {
-        //     console.log(`i: ${i}, c: ${this.chars[i]}, ignored: ${this.ignoredIndexes[i]}`)
-        // }
+        if (len > 0) {
+            const lastBrackets = this.inBrackets[len - 1];
+            if (lastBrackets.A != 0 || lastBrackets.B != 0 || lastBrackets.C != 0) {
+                console.log(`!!! Brackets aren't zero!`)
+                console.log(`!!! Brackets aren't zero!`)
+                console.log(`!!! Brackets aren't zero!`)
+                for (let i = 0; i < len; i++) {
+                    console.log(`i: ${i}, c: ${this.chars[i]}, ignored: ${this.ignoredIndexes[i]}`)
+                }
+            }
+        }
+
     }
 
-    noComments(instance, index = 0, skipWhitespace = true) {
-        const noComments = new CIterator(this.text.substring(index).trim());
-        instance.removeComments(noComments);
+    noComments(index = 0, skipWhitespace = true) {
+        const noComments = new CIterator(this.text.substring(index));
+        noComments.removeComments();
         if (skipWhitespace)
-            instance.skipWhitespace(noComments);
+            noComments.skipWhitespace();
         return noComments;
+    }
+
+    /**
+     * Removes comments from the iterator.
+     * This replaces all comment-characters (ignored indexes), with whitespaces.
+     * We do this so that we can have a comment-free string, while keeping the original char indexes.
+     */
+    removeComments() {
+        const chars = this.chars;
+        let output = '';
+        for (let i = 0; i < this.len; i++)
+            output += this.isIgnore(i) ? ' ' : chars[i];
+        this.setText(output);
+    }
+
+    skipWhitespace(skipComments = true) {
+        const len = this.len;
+        for (let i = this.curr; i < len; i++)
+            if ((skipComments && this.isIgnore(i)) ||
+                this.isWhitespace(this.char()))
+                this.next();
+            else break;
+    }
+
+    /**
+     * Check if character is a whitespace (space, tab, newline)
+     * @param char {string}
+     * @returns {boolean}
+     */
+    isWhitespace(char) {
+        return /\s/.test(char) || char === '\0';
     }
 
 }
