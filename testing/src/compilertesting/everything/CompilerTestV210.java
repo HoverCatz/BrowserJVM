@@ -25,7 +25,7 @@ import static java.lang.Math.max; // Static import
         v210             .  MyClassAnnotation
         (
         value = "Employee class ([{",
-        inner = @MyClassAnnotation.TestInner("hello")
+        inner = @MyClassAnnotation.TestInner((("hello")))
 )
 @SuppressWarnings(value = {"unch}()(ecked", "rawtypes", "Using ([{ in a string"})
 @Documented
