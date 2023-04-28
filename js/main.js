@@ -643,6 +643,22 @@ function findErrors(output) {
         }
         return new String(result, 0, len + resultOffset);
     `;
+    text = `
+        test = result[new String("owo") {
+            @Override
+            public String toString() {
+                return "owo";
+            }        
+        }.hashCode()] = 123;
+    `;
+    text = `
+        new Test() {
+            @Override
+            public String owo() {
+                return "oWo";
+            }
+        }.abc = 123;
+    `;
 
     // const info = {
     //     name: 'main',
@@ -703,7 +719,7 @@ function findErrors(output) {
         'fakeConstructor5': 'testing/src/compilertesting/functions/CompilerTestConstructorV10004.java',
 
         'everything': 'testing/src/compilertesting/everything/CompilerTestV210.java',
-        'empty': 'testing/src/compilertesting/everything/CompilerTestV211.java',
+        'empty': 'testing/src/compilertesting/everything/CompilerTestV211.java.bin',
         'generics1': 'testing/src/compilertesting/everything/CompilerTestV212.java',
         'generics2': 'testing/src/compilertesting/everything/CompilerTestV213.java',
         'generics3': 'testing/src/compilertesting/everything/CompilerTestV214.java',
@@ -728,14 +744,19 @@ function findErrors(output) {
         'error13': 'testing/src/java7srclisting/errors/ErrorV13.java',
         'error14': 'testing/src/java7srclisting/errors/ErrorV14.java',
 
-        'java7source': 'java7source'
+        'java7source': 'java7source',
+        'classes': 'classes'
     };
-    const selectedFile = 'generics3';
+    const selectedFile = 'everything';
     const start = Date.now();
     const classes = [];
     if (selectedFile === 'java7source')
         for (let url of java7source)
             classes.push(await compileJavaSourceFile(url));
+    else if (selectedFile === 'classes')
+        for (let name of Object.keys(files))
+            if (name === 'java7source' || name === 'classes') continue;
+            else classes.push(await compileJavaSourceFile(files[name]));
     else
         classes.push(await compileJavaSourceFile(files[selectedFile]));
     const end = Date.now();
@@ -744,6 +765,7 @@ function findErrors(output) {
     console.log(`maxFields: ${maxFields}, classMaxField: ${classMaxField}`)
     console.log(`maxFunctions: ${maxFunctions}, classMaxFunctions: ${classMaxFunctions}`)
     console.log(`maxFunctionLength: ${maxFunctionLength}, classMaxFunctionLength: ${classMaxFunctionLength}`)
+
     // TODO: Verify every single class:
     //       1. package
     //       2. annotations
@@ -752,34 +774,35 @@ function findErrors(output) {
     //          a. fields: annotations, access, type, name
     //          b. functions: annotations, access, type, name, arguments
     //          c. innerClasses: annotations, access, type, name, extends, implements, generics
-    for (let i = 0; i < classes.length; i++) {
-        const obj = classes[i];
-        const tops = obj.result.topLevelClasses;
-        if (!tops) continue;
-        for (let j = 0; j < tops.length; j++) {
-            const clz = tops[j];
-            if (i !== 0)
-                continue;
-            console.log(clz)
-            const imports = clz.imports;
-            if (imports.length <= 0)
-                continue;
-            for (let k = 0; k < imports.length; k++) {
-                const imp = imports[k];
-                if (imp.isStatic) continue;
-                const name = imp.name;
-                if (name.startsWith('compilertesting.')) continue;
-                if (name.endsWith('.*')) {
-                    // TODO: Special handling
-                    continue;
-                }
-                console.log(`Searching for: ${name}`)
-                const found = results.findClassByPkgAndName(name);
-                found.access = JavacUtils.accessFlagsToString(found.access);
-                console.log(`\tFound:`, found)
-            }
-        }
-    }
+
+    // for (let i = 0; i < classes.length; i++) {
+    //     const obj = classes[i];
+    //     const tops = obj.result.topLevelClasses;
+    //     if (!tops) continue;
+    //     for (let j = 0; j < tops.length; j++) {
+    //         const clz = tops[j];
+    //         if (i !== 0)
+    //             continue;
+    //         console.log(clz)
+    //         const imports = clz.imports;
+    //         if (imports.length <= 0)
+    //             continue;
+    //         for (let k = 0; k < imports.length; k++) {
+    //             const imp = imports[k];
+    //             if (imp.isStatic) continue;
+    //             const name = imp.name;
+    //             if (name.startsWith('compilertesting.')) continue;
+    //             if (name.endsWith('.*')) {
+    //                 // TODO: Special handling
+    //                 continue;
+    //             }
+    //             console.log(`Searching for: ${name}`)
+    //             const found = results.findClassByPkgAndName(name);
+    //             found.access = JavacUtils.accessFlagsToString(found.access);
+    //             console.log(`\tFound:`, found)
+    //         }
+    //     }
+    // }
 
     // results.findClassByPkgAndName('java.io.File')
 
