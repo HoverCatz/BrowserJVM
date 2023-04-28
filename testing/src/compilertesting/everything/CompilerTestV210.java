@@ -8,21 +8,29 @@
  * Contains: ([{)]}]{[(})
  */
 
-package compilertesting.everything;
+ package compilertesting . everything;
 
-import compilertesting.everything.v210.MyClassAnnotation;
+ import compilertesting . everything . v210 . MyClassAnnotation ;
 import compilertesting.everything.v210.Person;
 
 import java.io.Serializable;
-import java.util.*; // Wildcard import
+  import java.lang.annotation.*;
+    import java . util . * ; // Wildcard import
 import static java.lang.Math.max; // Static import
 
 // Annotations with strings containing special characters
-@MyClassAnnotation(
+@
+                compilertesting . everything.
+
+        v210             .  MyClassAnnotation
+        (
         value = "Employee class ([{",
         inner = @MyClassAnnotation.TestInner("hello")
 )
-@SuppressWarnings(value = {"unchecked", "rawtypes", "Using ([{ in a string"})
+@SuppressWarnings(value = {"unch}()(ecked", "rawtypes", "Using ([{ in a string"})
+@Documented
+@Retention(RetentionPolicy.CLASS)
+@Target({ElementType.FIELD,ElementType.METHOD,ElementType.PARAMETER,ElementType.LOCAL_VARIABLE})
 public class CompilerTestV210<T extends Number>
         extends Person<T>
         implements Comparable<CompilerTestV210<T>>, Serializable {
