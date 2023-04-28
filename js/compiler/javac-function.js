@@ -32,7 +32,7 @@ class JavaFunctionReader extends JavacUtils {
             let n = 0;
             // while (iter.curr < iter.len) {
             for (let i = 0; i < 10; i++) {
-                this.skipWhitespace(iter);
+                iter.skipWhitespace();
                 if (iter.isDone()) break;
 
                 const start = iter.index();
@@ -57,7 +57,7 @@ class JavaFunctionReader extends JavacUtils {
 
     readOneStatement(text) {
         const iter = new CIterator(text);
-        const nocc = iter.noComments(this);
+        const nocc = iter.noComments();
 
         // Start index
         let start = nocc.index();
@@ -66,11 +66,11 @@ class JavaFunctionReader extends JavacUtils {
         const output = {};
 
         // Find label
-        found = nocc.iterFind('^\\s*(?<label>[a-zA-Z_][a-zA-Z0-9_]*)\\s*(?<colon>\\:)(?<end>)', false, false);
+        found = nocc.iterFind('^\\s*(?<label>[a-zA-Z_][a-zA-Z0-9_]*)\\s*(?<colon>\\:)(?<end>)', true, false);
         if (!!found) {
             // Found label
             nocc.next(found[0].length);
-            this.skipWhitespace(nocc);
+            nocc.skipWhitespace();
 
             const sub = nocc.text.substring(start, found[1].length);
             console.log(`!!! LABEL: '${sub}'`)
@@ -86,7 +86,7 @@ class JavaFunctionReader extends JavacUtils {
             // Found open curly bracket
             const _start = nocc.index();
             nocc.next(found.index);
-            this.skipWhitespace(nocc);
+            nocc.skipWhitespace();
 
             // Search closing curly bracket
             this.skipAllBracketsBy(['{'], nocc, false);
@@ -167,9 +167,9 @@ class JavaFunctionReader extends JavacUtils {
             } else {
                 [ index, found ] = nocc.indexOfMany(['{']);
                 if (index === -1) {
-                    this.skipWhitespace(nocc);
+                    nocc.skipWhitespace();
                     nocc.next(4);
-                    this.skipWhitespace(nocc);
+                    nocc.skipWhitespace();
                 }
                 else
                     nocc.setIndex(index)
