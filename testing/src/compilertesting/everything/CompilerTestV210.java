@@ -10,6 +10,7 @@
 
  package compilertesting . everything;
 
+ import compilertesting.annotations.TestAnnotation1;
  import compilertesting . everything . v210 . MyClassAnnotation ;
 import compilertesting.everything.v210.Person;
 
@@ -27,13 +28,13 @@ import static java.lang.Math.max; // Static import
         value = "Employee class ([{",
         inner = @MyClassAnnotation.TestInner((("hello")))
 )
-@SuppressWarnings(value = {"unch}()(ecked", "rawtypes", "Using ([{ in a string"})
+@SuppressWarnings   (   value = {"unch}()(ecked", "rawtypes", "Using ([{ in a string"})
 @Documented
 @Retention(RetentionPolicy.CLASS)
 @Target({ElementType.FIELD,ElementType.METHOD,ElementType.PARAMETER,ElementType.LOCAL_VARIABLE})
-public class CompilerTestV210<T extends Number>
+public final abstract @interface CompilerTestV210<T extends Number<T extends ?>>
         extends Person<T>
-        implements Comparable<CompilerTestV210<T>>, Serializable {
+        implements Comparable<CompilerTestV210<T extends ?>>, Serializable {
 
     // Instance variables
     private T id;
@@ -78,7 +79,8 @@ public class CompilerTestV210<T extends Number>
     }
 
     @Override
-    public int compareTo(CompilerTestV210<T> other) {
+    @TestAnnotation1(inner = TestAnnotation1.TestInnerAnnotation1("abc"))
+    public int compareTo(CompilerTestV210<T extends ?> other) {
         return this.id.intValue() - other.id.intValue();
     }
 
@@ -98,7 +100,12 @@ public class CompilerTestV210<T extends Number>
         }
 
         public CompilerTestV210<T> build() {
-            return new CompilerTestV210<>(id, name);
+            return new CompilerTestV210<>(id, name) {
+                @Override
+                public String toString() {
+                    return "oWo";
+                }
+            };
         }
     }
 
