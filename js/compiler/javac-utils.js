@@ -26,12 +26,15 @@ class JavacUtils {
         'strictfp': Opcodes.ACC_STRICT
         // Records aren't supported in java7
     };
+    accessWordsString = Object.keys(this.accessWords).join('|');
 
     classTypes = [
         'class',
         'enum',
-        'interface'
+        'interface',
+        '@interface'
     ];
+    classTypesString = this.classTypes.join('|');
 
     /**
      * @param iter {CIterator}
@@ -94,24 +97,6 @@ class JavacUtils {
             case '(': return ClassItemType.Function;
         }
         return '';
-    }
-
-    /**
-     * @param iter {CIterator}
-     * @returns {[int,int|null|false]|false}
-     * @throws {Error}
-     */
-    detectNextItem(iter) {
-        iter.skipWhitespace();
-        if (iter.isDone()) return false;
-        const [ index, first ] = iter.findFirstOfMany(['@', '{', ';', '=', '(']);
-        if (index === false || index === -1)
-            return [ -1, false ];
-        const type = this.charToType(first);
-        if (type === '')
-            return [ -2 - index, first ];
-        //    throw new Error(`Unknown type '${first}' at index ${index}.`);
-        return [ index, type ];
     }
 
     /**
@@ -227,6 +212,7 @@ class JavacUtils {
                     this.isWhitespace(iter.char()))
                 iter.next();
             else break;
+        return iter.isDone();
     }
 
     peekAlphaNumeric(iter = null) {
@@ -896,6 +882,7 @@ class CIterator {
                 this.isWhitespace(this.char()))
                 this.next();
             else break;
+        return this.isDone();
     }
 
     /**
@@ -905,6 +892,15 @@ class CIterator {
      */
     isWhitespace(char) {
         return /\s/.test(char) || char === '\0';
+    }
+
+    assertNotDone(text, throwError = true) {
+        if (this.skipWhitespace()) {
+            if (throwError)
+                throw new Error(text);
+            return true;
+        }
+        return false;
     }
 
 }
