@@ -96,14 +96,15 @@ async function compileJavaSourceFile(fileName) {
     // console.log(fileName)
     const sourceReader = new JavaSourceReader(fileName, iter);
     return sourceReader.parseSourceCode().then(json => {
-        // console.log(json)
+        // console.log(json.result)
         // console.log(JSON.stringify(json, null, 4))
-        console.log('done')
+        // console.log('done')
 
         // if (json && json.result) countFieldsAndFunctions(json.result.topLevelClasses, fileName)
 
         return json;
     }).catch(error => {
         console.error(error)
+        return false;
     });
 }
