@@ -145,8 +145,6 @@ class JavaSourceReader extends JavacUtils {
         nocc.skipWhitespace();
         if (nocc.isDone()) return false;
 
-        // TODO: Fully support @interface
-
         const output = {
             package: '',
             imports: [],
