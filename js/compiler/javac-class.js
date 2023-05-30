@@ -52,7 +52,7 @@ class JavaSourceReader extends JavacUtils {
 
                 const parsedHeader = this.parseHeader(headerText);
                 if (!parsedHeader) break;
-                console.log(`parsedHeader:`, parsedHeader)
+                // console.log(`parsedHeader:`, parsedHeader)
 
                 const parsedClass = this.parseClass(classText);
                 if (!parsedClass) break;
@@ -145,10 +145,29 @@ class JavaSourceReader extends JavacUtils {
         nocc.skipWhitespace();
         if (nocc.isDone()) return false;
 
-        // while (true) {
-        for (let i = 0; i < 100; i++) {
-            nocc.skipWhitespace();
-            if (nocc.isDone()) break;
+        // TODO: Fully support @interface
+
+        const output = {
+            package: '',
+            imports: [],
+            annotations: [],
+            access: [],
+            classType: '',   // class, enum, interface, @interface
+            className: {
+                name: '',    // Test
+                generics: [] // <Number>, <?>
+            },
+            extends: {
+                name: '',    // java.lang.Object, Object, etc
+                generics: []
+            },
+            implements: []   // { name: '', generics: [] }
+        };
+
+        outer:
+        while (true) {
+        // for (let i = 0; i < 100; i++) {
+            if (nocc.skipWhitespace()) break;
 
             let start = nocc.index();
 
@@ -161,9 +180,29 @@ class JavaSourceReader extends JavacUtils {
                     const sub = text.substring(start, index);
                     // console.log(`sub: '${sub.trim()}'`)
                     const stmt = this.parseClassStatement(sub);
-                    console.log(`stmt:`, stmt)
+                    if (!stmt) {
+                        console.error(`Failed parsing class statement: '${sub}'`)
+                        break;
+                    }
+                    if ('package' in stmt) {
+                        output.package = stmt.package;
+                    } else if ('import' in stmt) {
+                        output.imports.push({
+                            name: stmt.import,
+                            static: stmt.static
+                        });
+                    }
                 } break;
                 case '@': {
+
+                    // @interface
+                    const isInterface = nocc.iterFind('^interface\\s*', false, false);
+                    if (!!isInterface) {
+                        // We found @interface, so break out of annotation loop
+                        nocc.setIndex(start);
+                        break outer;
+                    }
+
                     // Search for end of annotation
                     while (true) {
                     // for (let j = 0; j < 100; j++) {
@@ -183,26 +222,167 @@ class JavaSourceReader extends JavacUtils {
                             const last = text.substring(end, nocc.index());
                             // console.log(`anno a: '${first}'`)
                             // console.log(`anno b: '${last}'`)
+                            output.annotations.push({
+                                first: first,
+                                last: last
+                            });
                             break;
                         } else {
                             if (second === '@' || this.isValidJavaName(second)) { // Done with annotation
                                 // console.log(`end:`, found)
                                 nocc.next(found[1].length);
+
                                 // console.log(`anno c: '${text.substring(index + 1, nocc.index())}'`) // Skip @
                                 break;
                             }
-                            console.warn(`Filename: ${this.fileName}`)
-                            console.warn(`Found invalid character: '${second}' when looking for annotation data.`)
+                            console.error(`Filename: ${this.fileName}`)
+                            console.error(`Found invalid character: '${second}' when looking for annotation data.`)
                             break;
                         }
                     }
                 } break;
                 case '{':
-                    break;
+                    break outer;
             }
         }
 
-        return false;
+        nocc.assertNotDone('Error: Incomplete class?');
+
+        let match;
+
+        const accessRegex = '^(?<all>(?<word>' + this.accessWordsString + ')\\s+)';
+        // Read access flags
+        while (true) {
+        // for (let i = 0; i < 100; i++) {
+            nocc.assertNotDone('Error: Incomplete class?');
+
+            // Check for access flags
+            match = nocc.iterFind(accessRegex, false, false);
+            if (!match)
+                break;
+
+            nocc.next(match.groups.all.length)
+            output.access.push(this.accessWords[match.groups.word]);
+        }
+
+        nocc.assertNotDone('Error: Incomplete class?');
+
+        const typeRegex = '^(?<all>(?<type>' + this.classTypesString + ')\\s*)';
+        // Expect class-type
+        match = nocc.iterFind(typeRegex, false, false);
+        if (!match)
+            throw new Error(`Didn't find class-type. Incomplete class?`);
+        output.classType = match.groups.type;
+        nocc.next(match.groups.all.length);
+
+        nocc.assertNotDone('Error: Incomplete class?');
+
+        // Expect class-name
+        match = nocc.iterFind('^(?<skip>(?<className>[\\w]+)\\s*)', false, false);
+        if (!match)
+            throw new Error('Error: Expected java class-name here.');
+        output.className.name = match.groups.className;
+        nocc.next(match.groups.skip.length);
+
+        if (nocc.assertNotDone('Error: Incomplete class?', false))
+            return output;
+
+        // Check for generics
+        match = nocc.iterFind('^<', false, false);
+        if (!!match) {
+            const start = nocc.index();
+            this.skipUntilClosingChar('<', nocc);
+            const end = nocc.index();
+            const sub = nocc.subString(start, end).trim();
+            output.className.generics = sub;
+        }
+
+        if (nocc.assertNotDone('Error: Incomplete class?', false))
+            return output;
+
+        // Check for 'extends'
+        match = nocc.iterFind('^(?<skip>(?<extends>extends)\\s*)', false, false);
+        if (!!match) {
+            nocc.next(match.groups.skip.length);
+
+            // Expect class-name
+            match = nocc.iterFind('^(?<skip>(?<className>[\\w]+(\\s*\\.\\s*[\\w]+)*)\\s*)', false, false);
+            if (!match)
+                throw new Error('Error: Expected java class-name here.');
+            output.extends.name = match.groups.className;
+            nocc.next(match.groups.skip.length);
+
+            if (nocc.assertNotDone('Error: Incomplete class?', false))
+                return output;
+
+            // Check for generics
+            match = nocc.iterFind('^<', false, false);
+            if (!!match) {
+                const start = nocc.index();
+                this.skipUntilClosingChar('<', nocc);
+                const end = nocc.index();
+                const sub = nocc.subString(start, end).trim();
+                output.extends.generics = sub;
+            }
+        }
+
+        if (nocc.assertNotDone('Error: Incomplete class?', false))
+            return output;
+
+        // Check for 'implements'
+        match = nocc.iterFind('^(?<skip>(?<implements>implements)\\s*)', false, false);
+        if (!!match) {
+            nocc.next(match.groups.skip.length);
+
+            // while (true) {
+            for (let i = 0; i < 3; i++) {
+
+                nocc.skipWhitespace();
+                if (nocc.isDone())
+                    break; // Done with the class-header!
+
+                // Expect class-name
+                match = nocc.iterFind('^(?<skip>(?<className>[\\w]+)\\s*)', false, false);
+                if (!match)
+                    throw new Error('Error: Expected java class-name here.');
+                const implName = match.groups.className;
+                nocc.next(match.groups.skip.length);
+
+                nocc.skipWhitespace();
+                if (nocc.isDone()) {
+                    output.implements.push({
+                        name: implName,
+                        generics: ''
+                    });
+                    break; // Done with the class-header!
+                }
+
+                // Check for generics
+                match = nocc.iterFind('^<', false, false);
+                if (!!match) {
+                    const start = nocc.index();
+                    this.skipUntilClosingChar('<', nocc);
+                    const end = nocc.index();
+                    const sub = nocc.subString(start, end).trim();
+                    output.implements.push({
+                        name: implName,
+                        generics: sub
+                    });
+                }
+
+                nocc.skipWhitespace();
+                if (nocc.isDone())
+                    break; // Done with the class-header!
+
+                match = nocc.iterFind('^,', false, false);
+                if (!match)
+                    break;
+
+                nocc.next(1);
+            }
+        }
+
+        return output;
     }
 
     parseClass(classText) {
