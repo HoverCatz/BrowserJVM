@@ -683,6 +683,13 @@ function findErrors(output) {
     // TODO: While parsing classes, if a function is marked as native,
     //  we shouldn't expect curly brackets, but a semicolon.
 
+    // let float = testt();
+    // console.log(`bits: ${float.bits}`)
+    // console.log(`float: ${float.value.toFixed(4)}`)
+
+    // testJavaNumbers()
+    // throw '';
+
     const files = {
         '1': 'testing/src/compilertesting/fields/CompilerTestV1.java',
         '2': 'testing/src/compilertesting/fields/CompilerTestV2.java',
@@ -728,6 +735,8 @@ function findErrors(output) {
         'java.lang.Object': 'testing/java.7/java/lang/Object.java',
         'java.lang.Integer': 'testing/java.7/java/lang/Integer.java',
         'java.StringEditor': 'testing/java.7/com/sun/beans/editors/StringEditor.java',
+        'java.Deprecated': 'testing/java.7/com/sun/org/apache/bcel/internal/classfile/Deprecated.java',
+        'java.ORBImpl': 'testing/java.7/com/sun/corba/se/impl/orb/ORBImpl.java',
 
         'error1': 'testing/src/java7srclisting/errors/ErrorV1.java',
         'error2': 'testing/src/java7srclisting/errors/ErrorV2.java',
@@ -747,12 +756,18 @@ function findErrors(output) {
         'java7source': 'java7source',
         'classes': 'classes'
     };
-    const selectedFile = 'everything';
+    const selectedFile = 'classes';
     const start = Date.now();
     const classes = [];
     if (selectedFile === 'java7source')
-        for (let url of java7source)
-            classes.push(await compileJavaSourceFile(url));
+        for (let url of java7source) {
+            const clz = await compileJavaSourceFile(url);
+            if (!clz) {
+                console.log('Found error, aborting.')
+                break;
+            }
+            classes.push(clz);
+        }
     else if (selectedFile === 'classes')
         for (let name of Object.keys(files))
             if (name === 'java7source' || name === 'classes') continue;
