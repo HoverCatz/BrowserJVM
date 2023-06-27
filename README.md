@@ -22,7 +22,7 @@ Features:
 - - Writing class files
 
 Non-supported features (might come later):
-- Threads (can be done using setInterval)
+- Threads (can be done using setInterval/setTimeout)
 - IO (File system) (can be simulated)
 - Guis (can be shown as virtual windows on webpage)
 - Networking (can be done using a chrome extension)
