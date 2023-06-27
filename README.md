@@ -22,9 +22,10 @@ Features:
 - - Writing class files
 
 Non-supported features (might come later):
-- Threads
-- IO (File system)
-- Guis
+- Threads (can be done using setInterval)
+- IO (File system) (can be simulated)
+- Guis (can be shown as virtual windows on webpage)
+- Networking (can be done using a chrome extension)
 - Lambdas
 - Natives
 
